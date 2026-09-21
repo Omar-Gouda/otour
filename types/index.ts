@@ -1,36 +1,66 @@
 export type FragranceCategory = 'for_him' | 'for_her' | 'unisex';
 
 export interface FragranceAccord {
-  name: string;      // e.g. "Marine", "Citrus", "Woody", "Amber"
-  percentage: number; // e.g. 90, 75, 60
-  color?: string;     // e.g. "#1e3a8a" or default luxury palette
+  name: string;
+  percentage: number;
 }
 
 export interface Product {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   price: number;
   discount_price?: number | null;
+  stock_quantity: number;
   category: FragranceCategory;
+  thumbnail_url: string;
+  image_urls?: string[];
+  volume_ml?: number;
+  accords?: FragranceAccord[];
+  is_available: boolean;
+  is_featured?: boolean;
   is_best_seller?: boolean;
   is_hot?: boolean;
-  is_available?: boolean;
-  stock_quantity?: number;
-  thumbnail_url: string;
-  images_urls?: string[];
-  accords?: FragranceAccord[];
   created_at?: string;
 }
 
 export interface CartItem {
   product: Product;
   quantity: number;
-  // Payload compatibility
-  product_id?: string;
-  title?: string;
-  price?: number;
-  thumbnail_url?: string;
+}
+
+export interface OrderItem {
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  product?: Product;
+}
+
+export interface Order {
+  id: string;
+  tracking_code: string;
+  customer_name: string;
+  customer_phone: string;
+  address: string;
+  city: string;
+  total_amount: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  items: OrderItem[];
+  created_at?: string;
+}
+
+export interface Review {
+  id: string;
+  product_id: string;
+  reviewer_name?: string;
+  user_name?: string;
+  author_name?: string;
+  customer_name?: string;
+  rating: number;
+  comment: string;
+  product_title?: string;
+  products?: { title: string };
+  created_at?: string;
 }
 
 export interface PromoCode {
@@ -38,34 +68,7 @@ export interface PromoCode {
   code: string;
   discount_type: 'percentage' | 'fixed';
   discount_value: number;
-  max_uses?: number | null;
-  times_used: number;
-  is_one_time_per_user?: boolean;
+  min_order_amount?: number;
   is_active: boolean;
-  created_at?: string;
-}
-
-export interface Order {
-  id: string;
-  order_code: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_address: string;
-  address?: string;
-  total_amount: number;
-  discount_amount?: number;
-  promo_code_used?: string | null;
-  status: 'pending' | 'shipped' | 'delivered' | 'cancelled';
-  items: CartItem[];
-  created_at?: string;
-}
-
-export interface Review {
-  id: string;
-  product_id: string;
-  author_name: string;
-  customer_name?: string;
-  rating: number;
-  comment: string;
   created_at?: string;
 }

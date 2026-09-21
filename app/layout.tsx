@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { AppProvider } from '@/context/AppContext';
+import { Footer } from '@/components/storefront/Footer';
 import { Cinzel, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -34,19 +36,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      dir="ltr"
-      className={`${cinzel.variable} ${jakarta.variable} h-full dark antialiased selection:bg-amber-500 selection:text-black`}
-    >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100 font-sans">
-        {children}
+    <html lang="en" className="dark">
+      <body className="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col selection:bg-amber-500 selection:text-black">
+        <AppProvider>
+          <div className="flex-1 flex flex-col">
+            {children}
+          </div>
+          <Footer />
+        </AppProvider>
       </body>
     </html>
   );

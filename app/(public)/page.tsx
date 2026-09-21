@@ -1,95 +1,59 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
+import { useApp } from '@/context/AppContext';
 import { Navbar } from '@/components/storefront/Navbar';
+import { Hero } from '@/components/storefront/Hero';
 import { CategoryTabs } from '@/components/storefront/CategoryTabs';
 import { ProductGrid } from '@/components/storefront/ProductGrid';
-import { Footer } from '@/components/storefront/Footer';
-import { getProducts } from '@/services/products.service';
-import { Product, FragranceCategory } from '@/types';
-import { createClient } from '@/lib/supabase/client';
+import { FragranceCategory } from '@/types';
 
-export default function HomePage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function CatalogPage() {
+  const { products, loading } = useApp();
 
   const [activeTab, setActiveTab] = useState<'general' | 'bestsellers' | 'discounts'>('general');
   const [selectedCategory, setSelectedCategory] = useState<FragranceCategory | 'all'>('all');
 
-  const hasTrackedRef = useRef(false);
+  const filteredProducts = products.filter((product) => {
+    const matchesCategory =
+      selectedCategory === 'all' || product.category === selectedCategory;
 
-  // Track UNIQUE client visits only
-  useEffect(() => {
-    const trackUniqueVisit = async () => {
-      if (hasTrackedRef.current) return;
-      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) return;
+    let matchesTab = true;
+    if (activeTab === 'bestsellers') {
+      matchesTab = product.is_featured === true || product.is_best_seller === true || (product.stock_quantity ?? 0) > 0;
+    } else if (activeTab === 'discounts') {
+      matchesTab =
+        product.discount_price !== undefined &&
+        product.discount_price !== null &&
+        product.discount_price < product.price;
+    }
 
-      const hasVisitedSession = sessionStorage.getItem('aura_luxe_visited');
-
-      if (!hasVisitedSession) {
-        hasTrackedRef.current = true;
-        sessionStorage.setItem('aura_luxe_visited', 'true');
-
-        try {
-          const supabase = createClient();
-          await supabase.from('site_visits').insert([{}]);
-        } catch (err) {
-          console.error('Error tracking visit:', err);
-        }
-      }
-    };
-
-    trackUniqueVisit();
-  }, []);
-
-  // Fetch filtered catalog products
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      const filters: Parameters<typeof getProducts>[0] = {};
-      if (activeTab === 'bestsellers') filters.isBestSeller = true;
-      if (activeTab === 'discounts') filters.isDiscount = true;
-      if (selectedCategory !== 'all') filters.category = selectedCategory;
-
-      const dbData = await getProducts(filters);
-      setProducts(dbData);
-      setLoading(false);
-    };
-
-    fetchProducts();
-  }, [activeTab, selectedCategory]);
+    return matchesCategory && matchesTab;
+  });
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col justify-between selection:bg-amber-500 selection:text-black">
-      <div>
-        <Navbar />
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col selection:bg-amber-500 selection:text-black">
+      <Navbar />
+      <Hero />
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-          {/* Luxury Hero Banner */}
-          <section className="relative text-center py-10 px-6 rounded-2xl bg-gradient-to-b from-zinc-900/90 via-zinc-950 to-zinc-950 border border-amber-500/20 shadow-2xl mb-8">
-            <h1 className="text-3xl sm:text-5xl font-serif font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-400 mb-2">
-              LAYAL PERFUMES
-            </h1>
-            <p className="text-zinc-400 text-xs sm:text-sm tracking-widest uppercase font-sans">
-              A premium online fragrance boutique
-            </p>
-          </section>
-
-          {/* Navigation & Filter Tabs */}
-          <CategoryTabs
+      <main id="catalog-section" className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full space-y-8">
+        <div className="flex justify-center border-b border-zinc-800/80 pb-6">
+          <CategoryTabs 
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={(tab: 'general' | 'bestsellers' | 'discounts') => setActiveTab(tab)}
             selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
+            onCategoryChange={(cat: FragranceCategory | 'all') => setSelectedCategory(cat)}
           />
+        </div>
 
-          {/* Product Showcase Grid */}
-          <ProductGrid products={products} isLoading={loading} />
-        </main>
-      </div>
-
-      {/* Global Footer */}
-      <Footer />
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <ProductGrid products={filteredProducts} />
+        )}
+      </main>
     </div>
   );
 }

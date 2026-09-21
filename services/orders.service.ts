@@ -1,129 +1,231 @@
 import { createClient } from '@/lib/supabase/client';
-import { Order } from '@/types';
+import { Order, CartItem } from '@/types';
 
+/**
+ * Fetch all orders for admin dashboard & management (Safe fetch with manual items mapping)
+ */
+export const getOrders = async (): Promise<Order[]> => {
+  const supabase = createClient();
+  
+  const { data: ordersData, error: ordersError } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (ordersError) {
+    console.error('Error fetching orders table:', ordersError);
+    return [];
+  }
+
+  if (!ordersData || ordersData.length === 0) {
+    return [];
+  }
+
+  const orderIds = ordersData.map((o) => o.id);
+  const { data: itemsData } = await supabase
+    .from('order_items')
+    .select('*, product:products(*)')
+    .in('order_id', orderIds);
+
+  const ordersWithItems = ordersData.map((ord) => ({
+    ...ord,
+    tracking_code: ord.tracking_code || ord.order_code,
+    order_code: ord.order_code || ord.tracking_code,
+    items: itemsData?.filter((item) => item.order_id === ord.id) || [],
+  }));
+
+  return ordersWithItems as Order[];
+};
+
+export const getAllOrders = getOrders;
+
+/**
+ * Fetch a single order by its code
+ */
+export const getOrderByCode = async (code: string): Promise<Order | null> => {
+  const supabase = createClient();
+  const cleanCode = code.trim();
+
+  // Try fetching by order_code first, then tracking_code
+  let { data: ordersData, error } = await supabase
+    .from('orders')
+    .select('*')
+    .ilike('order_code', cleanCode)
+    .maybeSingle();
+
+  if (!ordersData) {
+    const res = await supabase
+      .from('orders')
+      .select('*')
+      .ilike('tracking_code', cleanCode)
+      .maybeSingle();
+    ordersData = res.data;
+  }
+
+  if (!ordersData) {
+    return null;
+  }
+
+  const { data: itemsData } = await supabase
+    .from('order_items')
+    .select('*, product:products(*)')
+    .eq('order_id', ordersData.id);
+
+  return {
+    ...ordersData,
+    tracking_code: ordersData.tracking_code || ordersData.order_code,
+    order_code: ordersData.order_code || ordersData.tracking_code,
+    items: itemsData || [],
+  } as Order;
+};
+
+export const getOrderByTrackingCode = getOrderByCode;
+
+/**
+ * Flexible order search by order code or phone number
+ */
+export const searchOrdersFlexible = async (query: string): Promise<Order[]> => {
+  const cleanQuery = query.trim();
+  if (!cleanQuery) return [];
+
+  const supabase = createClient();
+  
+  // Search using order_code and customer_phone safely
+  const { data: ordersData, error } = await supabase
+    .from('orders')
+    .select('*')
+    .or(`order_code.ilike.%${cleanQuery}%,tracking_code.ilike.%${cleanQuery}%,customer_phone.ilike.%${cleanQuery}%`)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    // Fallback search if .or fails
+    const { data: fallbackData } = await supabase
+      .from('orders')
+      .select('*')
+      .ilike('customer_phone', `%${cleanQuery}%`)
+      .order('created_at', { ascending: false });
+
+    if (!fallbackData || fallbackData.length === 0) return [];
+    
+    const orderIds = fallbackData.map((o) => o.id);
+    const { data: itemsData } = await supabase
+      .from('order_items')
+      .select('*, product:products(*)')
+      .in('order_id', orderIds);
+
+    return fallbackData.map((ord) => ({
+      ...ord,
+      tracking_code: ord.tracking_code || ord.order_code,
+      order_code: ord.order_code || ord.tracking_code,
+      items: itemsData?.filter((item) => item.order_id === ord.id) || [],
+    })) as Order[];
+  }
+
+  if (!ordersData || ordersData.length === 0) {
+    return [];
+  }
+
+  const orderIds = ordersData.map((o) => o.id);
+  const { data: itemsData } = await supabase
+    .from('order_items')
+    .select('*, product:products(*)')
+    .in('order_id', orderIds);
+
+  return ordersData.map((ord) => ({
+    ...ord,
+    tracking_code: ord.tracking_code || ord.order_code,
+    order_code: ord.order_code || ord.tracking_code,
+    items: itemsData?.filter((item) => item.order_id === ord.id) || [],
+  })) as Order[];
+};
+
+/**
+ * Create a new customer order along with its order items
+ */
 export const createOrder = async (orderData: {
   customer_name: string;
   customer_phone: string;
-  customer_address: string;
+  address: string;
+  city: string;
+  items: CartItem[];
   total_amount: number;
-  discount_amount?: number;
-  promo_code_used?: string | null;
-  items: any[];
-}) => {
+}): Promise<{ trackingCode: string }> => {
   const supabase = createClient();
 
-  const order_code = `LAYAL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  const orderCode = `LYL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-  const payload = {
-    order_code,
-    customer_name: orderData.customer_name,
-    customer_phone: orderData.customer_phone,
-    address: orderData.customer_address,
-    total_amount: orderData.total_amount,
-    discount_amount: orderData.discount_amount ?? 0,
-    promo_code_used: orderData.promo_code_used ?? null,
-    items: orderData.items,
-    status: 'pending',
-  };
-
-  const { data, error } = await supabase
+  const { data: order, error: orderError } = await supabase
     .from('orders')
-    .insert([payload])
+    .insert([
+      {
+        order_code: orderCode,
+        tracking_code: orderCode,
+        customer_name: orderData.customer_name,
+        customer_phone: orderData.customer_phone,
+        address: orderData.address,
+        city: orderData.city,
+        total_amount: orderData.total_amount,
+        status: 'pending',
+      },
+    ])
     .select()
     .single();
 
-  if (error) {
-    console.error('Error creating order in Supabase:', error);
-    throw error;
+  if (orderError || !order) {
+    console.error('Detailed Supabase order error:', JSON.stringify(orderError, null, 2));
+    throw new Error(orderError?.message || 'Failed to create order');
   }
 
-  return data as Order;
-};
+  const orderItemsPayload = orderData.items.map((item) => ({
+    order_id: order.id,
+    product_id: item.product.id,
+    quantity: item.quantity,
+    unit_price: item.product.discount_price ?? item.product.price,
+  }));
 
-export const getOrderByCode = async (code: string): Promise<Order | null> => {
-  const supabase = createClient();
+  const { error: itemsError } = await supabase
+    .from('order_items')
+    .insert(orderItemsPayload);
 
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*')
-    .eq('order_code', code)
-    .maybeSingle();
-
-  if (error || !data) {
-    return null;
+  if (itemsError) {
+    console.error('Detailed Supabase order items error:', JSON.stringify(itemsError, null, 2));
+    throw new Error(itemsError.message || 'Failed to attach items to order');
   }
 
-  return data as Order;
+  return { trackingCode: orderCode };
 };
 
-// Search by single Order Code OR Customer Phone
-export const getOrderByCodeAndPhone = async (searchTerm: string): Promise<Order[] | null> => {
-  const supabase = createClient();
-  const cleanSearch = searchTerm.trim();
-
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*')
-    .or(`order_code.eq.${cleanSearch},customer_phone.eq.${cleanSearch}`)
-    .order('created_at', { ascending: false });
-
-  if (error || !data) {
-    return null;
-  }
-
-  return data as Order[];
-};
-
-// Fetch list of orders from array of stored codes
-export const getOrdersByCodes = async (codes: string[]): Promise<Order[]> => {
-  if (!codes || codes.length === 0) return [];
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*')
-    .in('order_code', codes)
-    .order('created_at', { ascending: false });
-
-  if (error || !data) {
-    return [];
-  }
-
-  return data as Order[];
-};
-
-export const getAllOrders = async (): Promise<Order[]> => {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error || !data) {
-    return [];
-  }
-
-  return data as Order[];
-};
-
+/**
+ * Update order status
+ */
 export const updateOrderStatus = async (
-  id: string,
-  status: 'pending' | 'shipped' | 'delivered' | 'cancelled'
-) => {
+  orderId: string,
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+): Promise<void> => {
   const supabase = createClient();
-
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('orders')
     .update({ status })
-    .eq('id', id)
-    .select()
-    .single();
+    .eq('id', orderId);
 
   if (error) {
     console.error('Error updating order status:', error);
     throw error;
   }
+};
 
-  return data;
+/**
+ * Delete an order
+ */
+export const deleteOrder = async (orderId: string): Promise<void> => {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('orders')
+    .delete()
+    .eq('id', orderId);
+
+  if (error) {
+    console.error('Error deleting order:', error);
+    throw error;
+  }
 };

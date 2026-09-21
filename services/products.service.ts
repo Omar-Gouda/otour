@@ -1,79 +1,94 @@
 import { createClient } from '@/lib/supabase/client';
-import { Product, FragranceCategory } from '@/types';
+import { Product } from '@/types';
 
-const supabase = createClient();
-
-export const getProducts = async (filters?: {
-  category?: FragranceCategory;
-  isBestSeller?: boolean;
-  isDiscount?: boolean;
-}) => {
-  try {
-    let query = supabase.from('products').select('*');
-
-    if (filters?.category) {
-      query = query.eq('category', filters.category);
-    }
-    if (filters?.isBestSeller) {
-      query = query.eq('is_best_seller', true);
-    }
-    if (filters?.isDiscount) {
-      query = query.not('discount_price', 'is', null);
-    }
-
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) return [];
-    return (data as Product[]) || [];
-  } catch {
-    return [];
-  }
-};
-
-export const getProductById = async (id: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error || !data) return null;
-    return data as Product;
-  } catch {
-    return null;
-  }
-};
-
-export const createProduct = async (product: Omit<Product, 'id'>) => {
+export const getProducts = async (): Promise<Product[]> => {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('products')
-    .insert([product])
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching products:', error);
+    return [];
+  }
+
+  return data as Product[];
+};
+
+export const getProductById = async (id: string): Promise<Product | null> => {
+  if (!id) return null;
+  const supabase = createClient();
+  
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching product by ID:', error.message || error);
+    return null;
+  }
+
+  return data as Product | null;
+};
+
+export const createProduct = async (
+  productPayload: Omit<Product, 'id' | 'created_at'>
+): Promise<Product> => {
+  const supabase = createClient();
+  
+  // Clean payload: exclude optional DB fields not present in schema
+  const { image_urls, is_featured, ...cleanPayload } = productPayload as any;
+
+  const { data, error } = await supabase
+    .from('products')
+    .insert([cleanPayload])
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase Create Product Error Details:', error.message, error.details, error.hint);
+    throw new Error(error.message || 'Failed to create product');
+  }
+
   return data as Product;
 };
 
-export const updateProduct = async (id: string, updates: Partial<Product>) => {
+export const updateProduct = async (
+  id: string,
+  productPayload: Partial<Product>
+): Promise<Product> => {
+  const supabase = createClient();
+
+  // Clean payload: exclude optional DB fields
+  const { image_urls, is_featured, ...cleanPayload } = productPayload as any;
+
   const { data, error } = await supabase
     .from('products')
-    .update(updates)
+    .update(cleanPayload)
     .eq('id', id)
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase Update Product Error Details:', error.message, error.details, error.hint);
+    throw new Error(error.message || 'Failed to update product');
+  }
+
   return data as Product;
 };
 
-export const deleteProduct = async (id: string) => {
+export const deleteProduct = async (id: string): Promise<void> => {
+  const supabase = createClient();
   const { error } = await supabase
     .from('products')
     .delete()
     .eq('id', id);
 
-  if (error) throw error;
-  return true;
+  if (error) {
+    console.error('Error deleting product:', error);
+    throw error;
+  }
 };

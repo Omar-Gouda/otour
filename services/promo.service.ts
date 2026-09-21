@@ -1,63 +1,64 @@
 import { createClient } from '@/lib/supabase/client';
 import { PromoCode } from '@/types';
 
-// Validation for checkout
-export const validatePromoCode = async (code: string): Promise<PromoCode | null> => {
-  const supabase = createClient();
-  const cleanCode = code.trim().toUpperCase();
-
-  const { data, error } = await supabase
-    .from('promo_codes')
-    .select('*')
-    .eq('code', cleanCode)
-    .eq('is_active', true)
-    .maybeSingle();
-
-  if (error || !data) return null;
-
-  // Check usage limit
-  if (data.max_uses !== null && data.times_used >= data.max_uses) {
-    return null;
-  }
-
-  return data as PromoCode;
-};
-
-// Increment usage count after successful order
-export const incrementPromoUsage = async (codeId: string, currentUses: number) => {
-  const supabase = createClient();
-  await supabase
-    .from('promo_codes')
-    .update({ times_used: currentUses + 1 })
-    .eq('id', codeId);
-};
-
-// Admin: Generate new promo code
-export const createPromoCode = async (promoData: Partial<PromoCode>) => {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('promo_codes')
-    .insert([
-      {
-        ...promoData,
-        code: promoData.code?.toUpperCase().trim(),
-      },
-    ])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as PromoCode;
-};
-
-// Admin: Fetch all promo codes
-export const getAllPromoCodes = async (): Promise<PromoCode[]> => {
+export const getPromoCodes = async (): Promise<PromoCode[]> => {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('promo_codes')
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (error || !data) return [];
+  if (error) {
+    console.error('Error fetching promo codes:', error.message || error);
+    return [];
+  }
+
   return data as PromoCode[];
+};
+
+export const validatePromoCode = async (code: string): Promise<PromoCode | null> => {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('promo_codes')
+    .select('*')
+    .ilike('code', code.trim())
+    .eq('is_active', true)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as PromoCode;
+};
+
+export const createPromoCode = async (
+  promoPayload: Omit<PromoCode, 'id' | 'created_at'>
+): Promise<PromoCode> => {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('promo_codes')
+    .insert([promoPayload])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating promo code:', error.message || JSON.stringify(error));
+    throw new Error(error.message || 'Failed to insert promo code');
+  }
+
+  return data as PromoCode;
+};
+
+export const deletePromoCode = async (id: string): Promise<void> => {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('promo_codes')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting promo code:', error.message || error);
+    throw error;
+  }
 };

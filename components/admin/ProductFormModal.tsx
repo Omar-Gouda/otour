@@ -1,237 +1,138 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Product, FragranceCategory } from '@/types';
-import { Button } from '@/components/ui/Button';
+import { createProduct, updateProduct } from '@/services/products.service';
 import { X } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 interface ProductFormModalProps {
   isOpen: boolean;
+  product: Product | null;
   onClose: () => void;
-  onSubmit: (productData: Partial<Product>) => Promise<void>;
-  initialData?: Product | null;
+  onSuccess: () => void;
 }
 
-export const ProductFormModal: React.FC<ProductFormModalProps> = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-}) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [discountPrice, setDiscountPrice] = useState('');
-  const [category, setCategory] = useState<FragranceCategory>('unisex');
-  const [thumbnailUrl, setThumbnailUrl] = useState('');
-  const [stockQuantity, setStockQuantity] = useState('10');
-  const [isBestSeller, setIsBestSeller] = useState(false);
-  const [isHot, setIsHot] = useState(false);
-  const [isAvailable, setIsAvailable] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [errorText, setErrorText] = useState<string | null>(null);
+export function ProductFormModal({ isOpen, product, onClose, onSuccess }: ProductFormModalProps) {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    price: 0,
+    discount_price: undefined as number | undefined,
+    stock_quantity: 0,
+    category: 'unisex' as FragranceCategory,
+    volume_ml: 100,
+    thumbnail_url: '',
+    accords: [] as { name: string; percentage: number }[],
+    is_available: true,
+    is_featured: false,
+    is_best_seller: false,
+    is_hot: false,
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (initialData) {
-      setTitle(initialData.title || '');
-      setDescription(initialData.description || '');
-      setPrice(initialData.price ? initialData.price.toString() : '');
-      setDiscountPrice(
-        initialData.discount_price !== null && initialData.discount_price !== undefined
-          ? initialData.discount_price.toString()
-          : ''
-      );
-      setCategory(initialData.category || 'unisex');
-      setThumbnailUrl(initialData.thumbnail_url || '');
-      setStockQuantity(initialData.stock_quantity?.toString() ?? '10');
-      setIsBestSeller(Boolean(initialData.is_best_seller));
-      setIsHot(Boolean(initialData.is_hot));
-      setIsAvailable(Boolean(initialData.is_available));
-    } else {
-      setTitle('');
-      setDescription('');
-      setPrice('');
-      setDiscountPrice('');
-      setCategory('unisex');
-      setThumbnailUrl('');
-      setStockQuantity('10');
-      setIsBestSeller(false);
-      setIsHot(false);
-      setIsAvailable(true);
+    if (isOpen) {
+      if (product) {
+        setFormData({
+          title: product.title || '',
+          description: product.description || '',
+          price: product.price || 0,
+          discount_price: product.discount_price ?? undefined,
+          stock_quantity: product.stock_quantity ?? 0,
+          category: product.category || 'unisex',
+          volume_ml: product.volume_ml ?? 100,
+          thumbnail_url: product.thumbnail_url || '',
+          accords: product.accords && product.accords.length > 0 ? product.accords : [{ name: 'Woody', percentage: 50 }],
+          is_available: product.is_available ?? true,
+          is_featured: product.is_featured ?? false,
+          is_best_seller: product.is_best_seller ?? false,
+          is_hot: product.is_hot ?? false,
+        });
+      } else {
+        setFormData({
+          title: '',
+          description: '',
+          price: 0,
+          discount_price: undefined,
+          stock_quantity: 0,
+          category: 'unisex',
+          volume_ml: 100,
+          thumbnail_url: '',
+          accords: [{ name: 'Woody', percentage: 50 }],
+          is_available: true,
+          is_featured: false,
+          is_best_seller: false,
+          is_hot: false,
+        });
+      }
     }
-    setErrorText(null);
-  }, [initialData, isOpen]);
+  }, [isOpen, product]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setErrorText(null);
+    setIsSubmitting(true);
 
     try {
-      const parsedPrice = parseFloat(price);
-      const parsedDiscount = discountPrice.trim() !== '' ? parseFloat(discountPrice) : null;
-      const parsedStock = parseInt(stockQuantity, 10) || 0;
+      const payload: Partial<Product> = {
+        title: formData.title,
+        description: formData.description,
+        price: Number(formData.price),
+        discount_price: formData.discount_price ? Number(formData.discount_price) : null,
+        stock_quantity: Number(formData.stock_quantity),
+        category: formData.category,
+        volume_ml: Number(formData.volume_ml),
+        thumbnail_url: formData.thumbnail_url,
+        accords: formData.accords,
+        is_available: formData.is_available,
+        is_featured: formData.is_featured,
+        is_best_seller: formData.is_best_seller,
+        is_hot: formData.is_hot,
+      };
 
-      await onSubmit({
-        title: title.trim(),
-        description: description.trim(),
-        price: parsedPrice,
-        discount_price: parsedDiscount as any, // Send null to clear discount in Supabase
-        category,
-        thumbnail_url: thumbnailUrl.trim(),
-        stock_quantity: parsedStock,
-        is_best_seller: isBestSeller,
-        is_hot: isHot,
-        is_available: isAvailable && parsedStock > 0,
-      });
+      if (product?.id) {
+        await updateProduct(product.id, payload);
+      } else {
+        await createProduct(payload as any);
+      }
 
+      onSuccess();
       onClose();
-    } catch (err: any) {
-      console.error('Error submitting fragrance:', err);
-      setErrorText(err?.message || 'Failed to save product. Please check image URL or fields.');
+    } catch (err) {
+      console.error('Failed to save product:', err);
+      alert('Failed to save product details.');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-zinc-900 border border-amber-500/30 rounded-2xl w-full max-w-lg p-6 relative shadow-2xl">
-        <button
-          onClick={onClose}
-          type="button"
-          className="absolute top-4 right-4 text-zinc-400 hover:text-white"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <h2 className="text-xl font-serif font-bold text-amber-300 mb-4">
-          {initialData ? 'Edit Fragrance' : 'Add New Fragrance'}
-        </h2>
-
-        {errorText && (
-          <div className="mb-4 p-3 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs">
-            {errorText}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">Title</label>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <h2 className="text-amber-200 font-bold uppercase">{product ? 'Edit Product' : 'New Product'}</h2>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-mono">
+          <div className="space-y-1">
+            <label className="text-zinc-400 uppercase">Title</label>
             <input
               type="text"
               required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-amber-300"
             />
           </div>
-
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">Description</label>
-            <textarea
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
-            />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={isSubmitting} className="bg-amber-500 text-black font-bold">Save</Button>
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">Price (EGP)</label>
-              <input
-                type="number"
-                required
-                min="0"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">
-                Discount Price (EGP) <span className="text-[10px] text-zinc-500">(Leave empty to clear)</span>
-              </label>
-              <input
-                type="number"
-                min="0"
-                placeholder="Optional"
-                value={discountPrice}
-                onChange={(e) => setDiscountPrice(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as FragranceCategory)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
-              >
-                <option value="unisex">Unisex</option>
-                <option value="for_him">For Him</option>
-                <option value="for_her">For Her</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">Stock Quantity</label>
-              <input
-                type="number"
-                min="0"
-                required
-                value={stockQuantity}
-                onChange={(e) => setStockQuantity(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">Image URL</label>
-            <input
-              type="text"
-              required
-              value={thumbnailUrl}
-              onChange={(e) => setThumbnailUrl(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex gap-4 pt-2">
-            <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isBestSeller}
-                onChange={(e) => setIsBestSeller(e.target.checked)}
-              /> Best Seller
-            </label>
-            <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isHot}
-                onChange={(e) => setIsHot(e.target.checked)}
-              /> Hot 🔥
-            </label>
-            <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isAvailable}
-                onChange={(e) => setIsAvailable(e.target.checked)}
-              /> In Stock
-            </label>
-          </div>
-
-          <Button type="submit" disabled={loading} className="w-full mt-4 bg-amber-500 hover:bg-amber-400 text-black font-bold">
-            {loading ? 'Saving...' : initialData ? 'Update Fragrance' : 'Create Fragrance'}
-          </Button>
         </form>
       </div>
     </div>
   );
-};
+}
