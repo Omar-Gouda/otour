@@ -1,20 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product } from '@/types';
+import { Product, CartItem } from '@/types';
 
-interface CartItem {
-  product: Product;
-  quantity: number;
-}
-
-interface AppStore {
+export interface AppStore {
   cart: CartItem[];
   wishlist: Product[];
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
-  clearCart: () => void;
   toggleWishlist: (product: Product) => void;
+  moveToWishlist: (productId: string) => void;
   isInWishlist: (productId: string) => boolean;
+  clearCart: () => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -23,44 +19,55 @@ export const useAppStore = create<AppStore>()(
       cart: [],
       wishlist: [],
 
-      addToCart: (product) => {
-        const { cart } = get();
-        const existingIndex = cart.findIndex((item) => item.product.id === product.id);
-
-        if (existingIndex > -1) {
-          const updated = [...cart];
-          updated[existingIndex].quantity += 1;
-          set({ cart: updated });
-        } else {
-          set({ cart: [...cart, { product, quantity: 1 }] });
-        }
+      addToCart: (product: Product) => {
+        set((state) => {
+          const existingIndex = state.cart.findIndex((item) => item.product.id === product.id);
+          if (existingIndex > -1) {
+            const updatedCart = [...state.cart];
+            updatedCart[existingIndex].quantity += 1;
+            return { cart: updatedCart };
+          }
+          return { cart: [...state.cart, { product, quantity: 1 }] };
+        });
       },
 
-      removeFromCart: (productId) => {
-        set({ cart: get().cart.filter((item) => item.product.id !== productId) });
+      removeFromCart: (productId: string) => {
+        set((state) => ({
+          cart: state.cart.filter((item) => item.product.id !== productId),
+        }));
       },
 
-      clearCart: () => {
-        set({ cart: [] });
+      toggleWishlist: (product: Product) => {
+        set((state) => {
+          const exists = state.wishlist.some((p) => p.id === product.id);
+          if (exists) {
+            return { wishlist: state.wishlist.filter((p) => p.id !== product.id) };
+          }
+          return { wishlist: [...state.wishlist, product] };
+        });
       },
 
-      toggleWishlist: (product) => {
-        const { wishlist } = get();
-        const exists = wishlist.some((p) => p.id === product.id);
+      moveToWishlist: (productId: string) => {
+        set((state) => {
+          const item = state.cart.find((i) => i.product.id === productId);
+          const updatedCart = state.cart.filter((i) => i.product.id !== productId);
+          const alreadyInWishlist = state.wishlist.some((p) => p.id === productId);
 
-        if (exists) {
-          set({ wishlist: wishlist.filter((p) => p.id !== product.id) });
-        } else {
-          set({ wishlist: [...wishlist, product] });
-        }
+          return {
+            cart: updatedCart,
+            wishlist: item && !alreadyInWishlist ? [...state.wishlist, item.product] : state.wishlist,
+          };
+        });
       },
 
-      isInWishlist: (productId) => {
+      isInWishlist: (productId: string) => {
         return get().wishlist.some((p) => p.id === productId);
       },
+
+      clearCart: () => set({ cart: [] }),
     }),
     {
-      name: 'aura_luxe_store',
+      name: 'aura-luxe-storage',
     }
   )
 );
