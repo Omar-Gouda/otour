@@ -58,7 +58,7 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="https://api.whatsapp.com/send?phone=${whatsappNumber}"
+                  href="https://api.whatsapp.com/send?phone=201111902532"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-amber-200 transition-colors"
