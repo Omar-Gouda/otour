@@ -1,197 +1,276 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Product } from '@/types';
-import { getProducts, createProduct, updateProduct, deleteProduct } from '@/services/products.service';
-import { ProductFormModal } from '@/components/admin/ProductFormModal';
-import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { Edit3, Trash2, Plus, LayoutDashboard } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Navbar } from '@/components/storefront/Navbar';
+import { Button } from '@/components/ui/Button';
+import { getAllPromoCodes, createPromoCode } from '@/services/promo.service';
+import { getProducts, createProduct, updateProduct, deleteProduct } from '@/services/products.service';
+import { ProductModal } from '@/components/admin/ProductModal';
+import { PromoModal } from '@/components/admin/PromoModal';
+import { PromoCode, Product } from '@/types';
+import { Tag, Plus, Trash2, Edit, Flame, ArrowLeft, RefreshCw } from 'lucide-react';
+import Image from 'next/image';
 
-export default function ControlCenterPage() {
+export default function AdminControlCenter() {
+  const router = useRouter();
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // Deletion state
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const loadProducts = async () => {
-    const data = await getProducts();
-    setProducts(data);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [fetchedPromos, fetchedProducts] = await Promise.all([
+        getAllPromoCodes(),
+        getProducts(),
+      ]);
+      setPromoCodes(fetchedPromos);
+      setProducts(fetchedProducts);
+    } catch (err) {
+      console.error('Failed to load admin data:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadProducts();
+    fetchData();
   }, []);
 
-  const handleOpenAdd = () => {
-    setEditingProduct(null);
-    setIsModalOpen(true);
-  };
-
-  const handleOpenEdit = (product: Product) => {
-    setEditingProduct(product);
-    setIsModalOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (deletingId) {
-      await deleteProduct(deletingId);
-      setDeletingId(null);
-      await loadProducts();
-    }
-  };
-
-  const handleFormSubmit = async (productData: Partial<Product>) => {
+  const handleSaveProduct = async (productPayload: any) => {
     if (editingProduct) {
-      await updateProduct(editingProduct.id, productData);
+      await updateProduct(editingProduct.id, productPayload);
+      setProducts((prev) =>
+        prev.map((p) => (p.id === editingProduct.id ? { ...p, ...productPayload } : p))
+      );
     } else {
-      await createProduct(productData as Omit<Product, 'id'>);
+      const newProd = await createProduct(productPayload);
+      setProducts([newProd, ...products]);
     }
-    await loadProducts();
+  };
+
+  const handleDeleteProduct = async (id: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+    try {
+      await deleteProduct(id);
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSavePromo = async (code: string, type: 'percentage' | 'fixed', val: number, maxUses: string) => {
+    const newPromo = await createPromoCode({
+      code: code.trim().toUpperCase(),
+      discount_type: type,
+      discount_value: val,
+      max_uses: maxUses ? parseInt(maxUses, 10) : null,
+      is_active: true,
+    });
+    setPromoCodes([newPromo, ...promoCodes]);
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6 sm:p-10 selection:bg-amber-500 selection:text-black">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col selection:bg-amber-500 selection:text-black">
+      <Navbar />
+
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-6">
         
-        {/* Header Navigation */}
-        <div className="flex justify-between items-center border-b border-zinc-800 pb-6">
+        {/* Minimalist Navigation Link */}
+        <Link
+          href="/admin/dashboard"
+          className="inline-flex items-center gap-2 text-xs text-zinc-400 hover:text-amber-300 transition-colors font-sans"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </Link>
+
+        {/* Clean Header Bar */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-800/80 pb-4">
           <div>
-            <h1 className="text-2xl font-serif font-bold text-amber-300">Control Center</h1>
-            <p className="text-xs text-zinc-400 mt-1">Manage fragrance catalog, stock levels, tags, and pricing</p>
+            <h1 className="text-xl font-serif font-bold text-amber-200 uppercase tracking-wider">
+              Control Center
+            </h1>
+            <p className="text-xs text-zinc-500">Manage Catalog & Promotional Coupons</p>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/admin/dashboard">
-              <Button variant="secondary" className="gap-2 text-xs">
-                <LayoutDashboard className="w-4 h-4" /> Go to Dashboard
-              </Button>
-            </Link>
-            <Button onClick={handleOpenAdd} className="gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs">
-              <Plus className="w-4 h-4" /> Add New Fragrance
+            <Button
+              onClick={() => setIsPromoModalOpen(true)}
+              variant="secondary"
+              size="sm"
+              className="text-xs gap-1.5 border-zinc-800 hover:border-amber-500/40"
+            >
+              <Tag className="w-3.5 h-3.5 text-amber-400" /> Promo Code
+            </Button>
+
+            <Button
+              onClick={() => {
+                setEditingProduct(null);
+                setIsProductModalOpen(true);
+              }}
+              size="sm"
+              className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Perfume
+            </Button>
+
+            <Button onClick={fetchData} variant="secondary" size="sm" className="p-2 border-zinc-800">
+              <RefreshCw className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
 
-        {/* Catalog Table */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-serif text-amber-200">Catalog Products ({products.length})</h2>
+        {/* SECTION 1: PERFUME CATALOG TABLE */}
+        <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-6 space-y-4">
+          <h2 className="font-serif font-bold text-amber-300 text-base">
+            Perfume Catalog ({products.length})
+          </h2>
 
-          <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-zinc-300">
-                <thead className="bg-zinc-950/80 text-zinc-400 uppercase tracking-wider text-[10px] border-b border-zinc-800">
-                  <tr>
-                    <th className="p-4">Perfume</th>
-                    <th className="p-4">Category</th>
-                    <th className="p-4">Price</th>
-                    <th className="p-4">Stock Status</th>
-                    <th className="p-4 text-right">Actions</th>
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-zinc-500 font-mono text-[10px] uppercase">
+                    <th className="py-3 px-4">Item</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Price</th>
+                    <th className="py-3 px-4">Stock</th>
+                    <th className="py-3 px-4">Badges</th>
+                    <th className="py-3 px-4">In Stock</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800/60">
-                  {products.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center text-zinc-500 font-serif">
-                        No products found in catalog. Click "Add New Fragrance" to get started.
+                  {products.map((p) => (
+                    <tr key={p.id} className="hover:bg-zinc-900/60 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-10 h-10 bg-zinc-950 rounded-lg border border-zinc-800 shrink-0">
+                            <Image src={p.thumbnail_url} alt={p.title} fill className="object-contain p-1" />
+                          </div>
+                          <span className="font-serif font-bold text-zinc-200">{p.title}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-zinc-400 uppercase text-[10px]">
+                        {p.category.replace('_', ' ')}
+                      </td>
+                      <td className="py-3 px-4 font-serif font-bold text-amber-300">
+                        {p.discount_price ? (
+                          <span>
+                            {p.discount_price} EGP{' '}
+                            <span className="text-[10px] text-zinc-500 line-through font-normal">{p.price} EGP</span>
+                          </span>
+                        ) : (
+                          `${p.price} EGP`
+                        )}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-zinc-300">{p.stock_quantity ?? 0}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1">
+                          {p.is_best_seller && (
+                            <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded text-[9px] font-bold">
+                              Best Seller
+                            </span>
+                          )}
+                          {p.is_hot && (
+                            <span className="px-1.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded text-[9px] font-bold flex items-center gap-0.5">
+                              <Flame className="w-2.5 h-2.5" /> Hot
+                            </span>
+                          )}
+                          {!p.is_best_seller && !p.is_hot && <span className="text-zinc-600">-</span>}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`text-[10px] font-bold uppercase ${p.is_available ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {p.is_available ? 'In Stock' : 'Out of Stock'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingProduct(p);
+                              setIsProductModalOpen(true);
+                            }}
+                            className="p-1.5 text-zinc-400 hover:text-amber-300 hover:bg-zinc-800 rounded-lg transition-colors"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(p.id, p.title)}
+                            className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  ) : (
-                    products.map((product) => (
-                      <tr key={product.id} className="hover:bg-zinc-900/80 transition-colors">
-                        <td className="p-4 flex items-center gap-3">
-                          <img
-                            src={product.thumbnail_url}
-                            alt={product.title}
-                            className="w-10 h-10 object-cover rounded-lg border border-zinc-800"
-                          />
-                          <div>
-                            <p className="font-bold text-zinc-100 text-sm">{product.title}</p>
-                            <div className="flex gap-1.5 mt-1">
-                              {product.is_best_seller && <Badge variant="bestseller">Best Seller</Badge>}
-                              {product.is_hot && <Badge variant="hot">Hot 🔥</Badge>}
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="p-4 uppercase font-semibold text-zinc-400">
-                          {product.category.replace('_', ' ')}
-                        </td>
-
-                        <td className="p-4">
-                          {product.discount_price ? (
-                            <div className="flex flex-col">
-                              <span className="font-bold text-amber-300">{product.discount_price} EGP</span>
-                              <span className="text-[10px] text-zinc-500 line-through">{product.price} EGP</span>
-                            </div>
-                          ) : (
-                            <span className="font-bold text-amber-300">{product.price} EGP</span>
-                          )}
-                        </td>
-
-                        <td className="p-4">
-                          {product.is_available && (product.stock_quantity ?? 1) > 0 ? (
-                            <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                              In Stock ({product.stock_quantity ?? '10'})
-                            </span>
-                          ) : (
-                            <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                              Out of Stock
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="p-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleOpenEdit(product)}
-                              className="p-2 rounded-lg bg-zinc-800 hover:bg-amber-500/20 text-zinc-300 hover:text-amber-300 border border-zinc-700 transition-all"
-                              title="Edit Details & Stock"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-
-                            <button
-                              onClick={() => setDeletingId(product.id)}
-                              className="p-2 rounded-lg bg-zinc-800 hover:bg-rose-500/20 text-zinc-300 hover:text-rose-400 border border-zinc-700 transition-all"
-                              title="Delete Perfume"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          )}
         </div>
 
-      </div>
+        {/* SECTION 2: PROMO CODES */}
+        <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-6 space-y-4">
+          <h2 className="font-serif font-bold text-amber-300 text-base">
+            Promotional Coupons ({promoCodes.length})
+          </h2>
 
-      {/* Product Form Modal */}
-      <ProductFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleFormSubmit}
-        initialData={editingProduct}
+          {promoCodes.length === 0 ? (
+            <p className="text-xs text-zinc-500 italic py-2 text-center">No promo codes generated yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {promoCodes.map((p) => {
+                const isExhausted = p.max_uses !== null && p.max_uses !== undefined && p.times_used >= p.max_uses;
+                const isActive = p.is_active && !isExhausted;
+
+                return (
+                  <div key={p.id} className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 flex justify-between items-center text-xs">
+                    <div>
+                      <span className="font-mono font-bold text-amber-300 tracking-wider">{p.code}</span>
+                      <p className="text-[10px] text-zinc-400 mt-0.5">
+                        {p.discount_type === 'percentage' ? `${p.discount_value}% OFF` : `-${p.discount_value} EGP`} • Used: {p.times_used}/{p.max_uses ?? '∞'}
+                      </p>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                        isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      }`}
+                    >
+                      {isActive ? 'Active' : 'Exhausted'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Modals */}
+      <ProductModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        onSave={handleSaveProduct}
+        editingProduct={editingProduct}
       />
 
-      {/* Custom Luxury Delete Confirmation Modal */}
-      <ConfirmModal
-        isOpen={Boolean(deletingId)}
-        title="Remove Fragrance"
-        message="Are you sure you want to delete this perfume from the catalog? This action cannot be undone."
-        confirmText="Yes, Delete"
-        cancelText="Keep Perfume"
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeletingId(null)}
+      <PromoModal
+        isOpen={isPromoModalOpen}
+        onClose={() => setIsPromoModalOpen(false)}
+        onSave={handleSavePromo}
       />
     </div>
   );

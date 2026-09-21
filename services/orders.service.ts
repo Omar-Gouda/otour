@@ -6,11 +6,13 @@ export const createOrder = async (orderData: {
   customer_phone: string;
   customer_address: string;
   total_amount: number;
+  discount_amount?: number;
+  promo_code_used?: string | null;
   items: any[];
 }) => {
   const supabase = createClient();
 
-  const order_code = `AURA-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  const order_code = `LAYAL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
   const payload = {
     order_code,
@@ -18,6 +20,8 @@ export const createOrder = async (orderData: {
     customer_phone: orderData.customer_phone,
     address: orderData.customer_address,
     total_amount: orderData.total_amount,
+    discount_amount: orderData.discount_amount ?? 0,
+    promo_code_used: orderData.promo_code_used ?? null,
     items: orderData.items,
     status: 'pending',
   };

@@ -168,38 +168,47 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Action Buttons */}
             <div className="space-y-3 pt-2">
-              <div className="flex gap-3">
-                {isOutOfStock ? (
-                  <Button disabled className="flex-1 bg-zinc-800 text-zinc-500 cursor-not-allowed">
+              {isOutOfStock ? (
+                <div className="space-y-3">
+                  <Button disabled className="w-full bg-zinc-800/80 text-zinc-500 cursor-not-allowed py-3 text-xs uppercase font-bold border border-zinc-800">
                     Currently Out of Stock
                   </Button>
-                ) : (
-                  <Button
-                    onClick={() => addToCart(product)}
-                    className="flex-1 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-black font-bold py-3 text-xs uppercase tracking-wider gap-2 shadow-lg"
+                  <button
+                    disabled
+                    className="w-full flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 text-zinc-600 font-bold py-3 px-4 rounded-xl text-xs uppercase cursor-not-allowed opacity-60"
                   >
-                    <ShoppingBag className="w-4 h-4" /> Add to Shopping Bag
-                  </Button>
-                )}
+                    <MessageCircle className="w-4 h-4" /> Ordering Unavailable
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => addToCart(product)}
+                      className="flex-1 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-black font-bold py-3 text-xs uppercase tracking-wider gap-2 shadow-lg"
+                    >
+                      <ShoppingBag className="w-4 h-4" /> Add to Shopping Bag
+                    </Button>
 
-                <button
-                  onClick={() => toggleWishlist(product)}
-                  className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-amber-400 transition-colors"
-                  title="Wishlist"
-                >
-                  <Heart className={`w-5 h-5 ${isInWishlist ? 'fill-amber-400 text-amber-400' : ''}`} />
-                </button>
-              </div>
+                    <button
+                      onClick={() => toggleWishlist(product)}
+                      className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-amber-400 transition-colors"
+                      title="Wishlist"
+                    >
+                      <Heart className={`w-5 h-5 ${isInWishlist ? 'fill-amber-400 text-amber-400' : ''}`} />
+                    </button>
+                  </div>
 
-              {/* WhatsApp Direct Buy Button (With Margin Bottom for spacing) */}
-              <a
-                href={`https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${whatsappMsg}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider shadow-lg transition-all mb-8"
-              >
-                <MessageCircle className="w-4 h-4" /> Buy Now & Order via WhatsApp
-              </a>
+                  <a
+                    href={`https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${whatsappMsg}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider shadow-lg transition-all mb-8"
+                  >
+                    <MessageCircle className="w-4 h-4" /> Buy Now & Order via WhatsApp
+                  </a>
+                </>
+              )}
             </div>
 
             {/* Boutique Perks */}

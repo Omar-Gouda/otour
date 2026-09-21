@@ -47,3 +47,31 @@ export interface Review {
   comment: string;
   created_at?: string;
 }
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  max_uses?: number | null;
+  times_used: number;
+  is_one_time_per_user?: boolean;
+  is_active: boolean;
+  created_at?: string;
+}
+
+// تحديث الـ Order لتسجيل الـ Discount في الفاتورة
+export interface Order {
+  id: string;
+  order_code: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_address: string;
+  address?: string;
+  total_amount: number;
+  discount_amount?: number; // <--- جديد
+  promo_code_used?: string; // <--- جديد
+  status: 'pending' | 'shipped' | 'delivered' | 'cancelled';
+  items: CartItem[];
+  created_at?: string;
+}
