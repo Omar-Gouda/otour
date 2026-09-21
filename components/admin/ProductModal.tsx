@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Product, FragranceCategory } from '@/types';
+import { Product, FragranceCategory, FragranceAccord } from '@/types';
 import { X } from 'lucide-react';
 
 interface ProductModalProps {
@@ -28,6 +28,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const [prodIsBestSeller, setProdIsBestSeller] = useState(false);
   const [prodIsHot, setProdIsHot] = useState(false);
   const [prodIsAvailable, setProdIsAvailable] = useState(true);
+  const [accordsInput, setAccordsInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -42,6 +43,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       setProdIsBestSeller(Boolean(editingProduct.is_best_seller));
       setProdIsHot(Boolean(editingProduct.is_hot));
       setProdIsAvailable(Boolean(editingProduct.is_available));
+      
+      if (editingProduct.accords && editingProduct.accords.length > 0) {
+        const formatted = editingProduct.accords.map(a => `${a.name}:${a.percentage}`).join(', ');
+        setAccordsInput(formatted);
+      } else {
+        setAccordsInput('');
+      }
     } else {
       setProdTitle('');
       setProdCategory('for_him');
@@ -53,10 +61,27 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       setProdIsBestSeller(false);
       setProdIsHot(false);
       setProdIsAvailable(true);
+      setAccordsInput('');
     }
   }, [editingProduct, isOpen]);
 
   if (!isOpen) return null;
+
+  const parseAccords = (raw: string): FragranceAccord[] => {
+    if (!raw.trim()) return [];
+    return raw
+      .split(',')
+      .map((item) => {
+        const parts = item.split(':');
+        const name = parts[0]?.trim() || '';
+        const pct = parts[1] ? Number(parts[1].trim()) : 80;
+        return {
+          name,
+          percentage: isNaN(pct) ? 80 : pct,
+        };
+      })
+      .filter((a) => a.name.length > 0);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +89,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
     setIsSaving(true);
     try {
+      const parsedAccords = parseAccords(accordsInput);
+
       await onSave({
         title: prodTitle.trim(),
         category: prodCategory,
@@ -75,10 +102,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         is_best_seller: prodIsBestSeller,
         is_hot: prodIsHot,
         is_available: prodIsAvailable,
+        accords: parsedAccords,
       });
       onClose();
     } catch (err) {
-      console.error(err);
+      console.error('Failed to save product:', err);
     } finally {
       setIsSaving(false);
     }
@@ -86,7 +114,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-zinc-400 hover:text-white">
           <X className="w-5 h-5" />
         </button>
@@ -175,6 +203,19 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               value={prodDescription}
               onChange={(e) => setProdDescription(e.target.value)}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-100 focus:border-amber-500 focus:outline-none resize-none"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] text-zinc-400 uppercase tracking-wider">
+              Main Accords (Optional - e.g. Marine:90, Citrus:75, Woody:60)
+            </label>
+            <input
+              type="text"
+              value={accordsInput}
+              onChange={(e) => setAccordsInput(e.target.value)}
+              placeholder="Marine:90, Citrus:75, Woody:60"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-amber-300 font-mono focus:border-amber-500 focus:outline-none"
             />
           </div>
 

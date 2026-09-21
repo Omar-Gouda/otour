@@ -1,51 +1,52 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
-import Image from 'next/image';
+import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Navbar } from '@/components/storefront/Navbar';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { ReviewSection } from '@/components/storefront/ReviewSection';
-import { useAppStore } from '@/lib/store';
+import { AccordsBar } from '@/components/storefront/AccordsBar';
 import { getProductById } from '@/services/products.service';
 import { getProductReviews, getProductAverageRating } from '@/services/reviews.service';
+import { useAppStore } from '@/lib/store';
 import { Product, Review } from '@/types';
-import { ShoppingBag, Star, Heart, ArrowLeft, ShieldCheck, Truck, RefreshCw, MessageCircle } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Heart, MessageCircle, Star, ShieldCheck, Truck, Sparkles } from 'lucide-react';
 
-export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function ProductDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const productId = resolvedParams.id;
 
   const [product, setProduct] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [ratingData, setRatingData] = useState<{ average: number; count: number } | null>(null);
+  const [ratingInfo, setRatingInfo] = useState<{ average: number; count: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const addToCart = useAppStore((state) => state.addToCart);
   const toggleWishlist = useAppStore((state) => state.toggleWishlist);
-  const isInWishlist = useAppStore((state) => state.isInWishlist(id));
-
-  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '201017009415';
+  const wishlist = useAppStore((state) => state.wishlist);
 
   useEffect(() => {
-    const loadProductData = async () => {
+    async function loadData() {
       setLoading(true);
-      const dbProduct = await getProductById(id);
-      if (dbProduct) {
-        setProduct(dbProduct);
+      try {
+        const [prod, revs, rating] = await Promise.all([
+          getProductById(productId),
+          getProductReviews(productId),
+          getProductAverageRating(productId),
+        ]);
+        setProduct(prod);
+        setReviews(revs);
+        setRatingInfo(rating);
+      } catch (error) {
+        console.error('Error loading product details:', error);
+      } finally {
+        setLoading(false);
       }
+    }
 
-      const revs = await getProductReviews(id);
-      setReviews(revs);
-
-      const avg = await getProductAverageRating(id);
-      setRatingData(avg);
-
-      setLoading(false);
-    };
-
-    loadProductData();
-  }, [id]);
+    loadData();
+  }, [productId]);
 
   if (loading) {
     return (
@@ -63,108 +64,109 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
-          <h2 className="text-2xl font-serif text-amber-200">Perfume Not Found</h2>
+          <h2 className="text-xl font-serif text-amber-200">Perfume Not Found</h2>
           <Link href="/">
-            <Button variant="secondary" className="gap-2 text-xs">
-              <ArrowLeft className="w-4 h-4" /> Back to Boutique
-            </Button>
+            <Button className="bg-amber-500 text-black font-bold text-xs">Back to Catalog</Button>
           </Link>
         </div>
       </div>
     );
   }
 
+  const isInWishlist = wishlist.some((item) => item.id === product.id);
   const isOutOfStock = !product.is_available || (product.stock_quantity !== undefined && product.stock_quantity <= 0);
-  const hasDiscount = Boolean(
-    product.discount_price !== null &&
-    product.discount_price !== undefined &&
-    product.discount_price < product.price
-  );
 
-  const whatsappMsg = encodeURIComponent(
-    `Hello! I would like to order "${product.title}" (${hasDiscount ? product.discount_price : product.price} EGP) directly via WhatsApp.`
-  );
+  const adminPhone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '201017009415';
+  const whatsappMsg = `Hello LAYAL,%0AI am interested in ordering: *${product.title}* (${product.discount_price ?? product.price} EGP).`;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col selection:bg-amber-500 selection:text-black">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full space-y-16">
+      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-12">
         
         {/* Navigation Link */}
-        <Link href="/" className="inline-flex items-center gap-2 text-xs text-zinc-400 hover:text-amber-300 transition-colors">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-xs text-zinc-400 hover:text-amber-300 transition-colors font-sans"
+        >
           <ArrowLeft className="w-4 h-4" /> Back to Catalog
         </Link>
 
-        {/* Main Product Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16 items-start">
+        {/* Product Details Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start">
           
-          {/* Left: Product Image */}
-          <div className="relative aspect-square w-full bg-gradient-to-b from-zinc-900 via-zinc-950 to-zinc-950 border border-amber-500/20 rounded-2xl overflow-hidden p-8 flex items-center justify-center shadow-2xl">
-            <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-              {isOutOfStock ? (
-                <Badge variant="outOfStock">Out of Stock</Badge>
-              ) : (
-                <>
-                  {product.is_best_seller && <Badge variant="bestseller">Best Seller</Badge>}
-                  {hasDiscount && <Badge variant="discount">Sale</Badge>}
-                  {product.is_hot && <Badge variant="hot">Hot 🔥</Badge>}
-                </>
-              )}
-            </div>
-
+          {/* Product Image */}
+          <div className="relative aspect-square bg-gradient-to-b from-zinc-900 via-zinc-950 to-zinc-900 border border-zinc-800 rounded-3xl p-8 overflow-hidden shadow-2xl flex items-center justify-center">
             <Image
               src={product.thumbnail_url}
               alt={product.title}
               fill
-              className="object-contain p-6 drop-shadow-[0_20px_25px_rgba(0,0,0,0.9)]"
+              className="object-contain p-6 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
               priority
             />
+
+            {/* Status Badges */}
+            <div className="absolute top-4 left-4 flex flex-col gap-2">
+              {isOutOfStock && (
+                <span className="px-3 py-1 bg-zinc-900/90 text-rose-400 border border-rose-500/30 rounded-full text-[10px] font-mono uppercase tracking-wider font-bold">
+                  Out of Stock
+                </span>
+              )}
+              {product.is_best_seller && (
+                <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-[10px] font-mono uppercase tracking-wider font-bold">
+                  Best Seller
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Right: Info & Actions */}
+          {/* Product Information */}
           <div className="space-y-6">
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-amber-400/80">
+            <div className="space-y-2">
+              <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-400">
                 {product.category.replace('_', ' ')}
               </span>
-              <h1 className="text-3xl sm:text-4xl font-serif font-bold text-zinc-100 tracking-wide mt-1 uppercase">
+              <h1 className="text-2xl sm:text-4xl font-serif font-bold text-amber-100 uppercase tracking-wide leading-tight">
                 {product.title}
               </h1>
 
-              {/* Real Average Rating */}
-              <div className="flex items-center gap-2 mt-3 text-amber-400 text-xs font-semibold">
-                {ratingData ? (
-                  <>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-amber-400" />
-                      <span>{ratingData.average} / 5</span>
-                    </div>
-                    <span className="text-zinc-500 font-normal">({ratingData.count} reviews)</span>
-                  </>
-                ) : (
-                  <span className="text-xs text-zinc-500 font-normal italic">No reviews submitted yet</span>
-                )}
-              </div>
+              {/* Rating Summary */}
+              {ratingInfo && (
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-1 text-amber-400">
+                    <Star className="w-4 h-4 fill-amber-400" />
+                    <span className="text-xs font-bold font-mono">{ratingInfo.average}</span>
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-sans">({ratingInfo.count} reviews)</span>
+                </div>
+              )}
             </div>
 
-            {/* Pricing */}
-            <div className="flex items-baseline gap-3 border-y border-zinc-900 py-4">
-              {hasDiscount ? (
-                <>
-                  <span className="text-3xl font-serif font-bold text-amber-300">{product.discount_price} EGP</span>
-                  <span className="text-base text-zinc-500 line-through">{product.price} EGP</span>
-                </>
-              ) : (
-                <span className="text-3xl font-serif font-bold text-amber-300">{product.price} EGP</span>
+            {/* Price Display */}
+            <div className="flex items-baseline gap-3 border-y border-zinc-800/80 py-4">
+              <span className="text-2xl sm:text-3xl font-serif font-bold text-amber-300">
+                {product.discount_price ?? product.price} EGP
+              </span>
+              {product.discount_price && (
+                <span className="text-sm font-sans text-zinc-500 line-through">
+                  {product.price} EGP
+                </span>
               )}
             </div>
 
             {/* Description */}
             <div className="space-y-2">
-              <h3 className="text-[11px] font-mono uppercase tracking-widest text-amber-400">Olfactory Notes & Description</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed font-sans">{product.description}</p>
+              <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400">
+                Olfactory Notes & Description
+              </span>
+              <p className="text-xs text-zinc-300 leading-relaxed font-sans">
+                {product.description || 'Experience the exquisite blend of rare ingredients crafted for pure luxury.'}
+              </p>
             </div>
+
+            {/* Main Accords Component (Hides automatically if accords are not set) */}
+            <AccordsBar accords={product.accords} />
 
             {/* Action Buttons */}
             <div className="space-y-3 pt-2">
@@ -200,10 +202,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   </div>
 
                   <a
-                    href={`https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${whatsappMsg}`}
+                    href={`https://api.whatsapp.com/send?phone=${adminPhone}&text=${whatsappMsg}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider shadow-lg transition-all mb-8"
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider shadow-lg transition-all"
                   >
                     <MessageCircle className="w-4 h-4" /> Buy Now & Order via WhatsApp
                   </a>
@@ -211,29 +213,29 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               )}
             </div>
 
-            {/* Boutique Perks */}
-            <div className="grid grid-cols-3 gap-3 pt-4 border-t border-zinc-900 text-center">
-              <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800/80 space-y-1">
-                <ShieldCheck className="w-4 h-4 text-amber-400 mx-auto" />
-                <p className="text-[10px] font-bold text-zinc-300">100% Authentic</p>
+            {/* Brand Guarantees */}
+            <div className="grid grid-cols-3 gap-2 pt-4 border-t border-zinc-800/80 text-center text-[10px] text-zinc-400 font-mono">
+              <div className="p-2 rounded-xl bg-zinc-900/40 border border-zinc-800/60 flex flex-col items-center gap-1">
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <span>100% Authentic</span>
               </div>
-              <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800/80 space-y-1">
-                <Truck className="w-4 h-4 text-amber-400 mx-auto" />
-                <p className="text-[10px] font-bold text-zinc-300">Fast Shipping</p>
+              <div className="p-2 rounded-xl bg-zinc-900/40 border border-zinc-800/60 flex flex-col items-center gap-1">
+                <Truck className="w-4 h-4 text-amber-400" />
+                <span>Fast Shipping</span>
               </div>
-              <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800/80 space-y-1">
-                <RefreshCw className="w-4 h-4 text-amber-400 mx-auto" />
-                <p className="text-[10px] font-bold text-zinc-300">Luxury Packaging</p>
+              <div className="p-2 rounded-xl bg-zinc-900/40 border border-zinc-800/60 flex flex-col items-center gap-1">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>Luxury Packaging</span>
               </div>
             </div>
 
           </div>
         </div>
 
-        {/* Reviews Section with proper spacing */}
-        <section className="border-t border-zinc-900 pt-10">
-          <ReviewSection productId={id} initialReviews={reviews} />
-        </section>
+        {/* Customer Reviews Section */}
+        <div className="pt-10 border-t border-zinc-800/80">
+          <ReviewSection productId={productId} initialReviews={reviews} />
+        </div>
 
       </main>
     </div>

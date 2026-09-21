@@ -1,18 +1,26 @@
 export type FragranceCategory = 'for_him' | 'for_her' | 'unisex';
 
+export interface FragranceAccord {
+  name: string;      // e.g. "Marine", "Citrus", "Woody", "Amber"
+  percentage: number; // e.g. 90, 75, 60
+  color?: string;     // e.g. "#1e3a8a" or default luxury palette
+}
+
 export interface Product {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   price: number;
   discount_price?: number | null;
   category: FragranceCategory;
   is_best_seller?: boolean;
   is_hot?: boolean;
-  is_available: boolean;
+  is_available?: boolean;
   stock_quantity?: number;
   thumbnail_url: string;
   images_urls?: string[];
+  accords?: FragranceAccord[];
+  created_at?: string;
 }
 
 export interface CartItem {
@@ -23,29 +31,6 @@ export interface CartItem {
   title?: string;
   price?: number;
   thumbnail_url?: string;
-}
-
-export interface Order {
-  id: string;
-  order_code: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_address: string;
-  address?: string;
-  total_amount: number;
-  status: 'pending' | 'shipped' | 'delivered' | 'cancelled';
-  items: CartItem[];
-  created_at?: string;
-}
-
-export interface Review {
-  id: string;
-  product_id: string;
-  author_name: string;
-  customer_name?: string;
-  rating: number;
-  comment: string;
-  created_at?: string;
 }
 
 export interface PromoCode {
@@ -60,7 +45,6 @@ export interface PromoCode {
   created_at?: string;
 }
 
-// تحديث الـ Order لتسجيل الـ Discount في الفاتورة
 export interface Order {
   id: string;
   order_code: string;
@@ -69,9 +53,19 @@ export interface Order {
   customer_address: string;
   address?: string;
   total_amount: number;
-  discount_amount?: number; // <--- جديد
-  promo_code_used?: string; // <--- جديد
+  discount_amount?: number;
+  promo_code_used?: string | null;
   status: 'pending' | 'shipped' | 'delivered' | 'cancelled';
   items: CartItem[];
+  created_at?: string;
+}
+
+export interface Review {
+  id: string;
+  product_id: string;
+  author_name: string;
+  customer_name?: string;
+  rating: number;
+  comment: string;
   created_at?: string;
 }
