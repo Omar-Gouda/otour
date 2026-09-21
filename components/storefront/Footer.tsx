@@ -14,7 +14,7 @@ export const Footer: React.FC = () => {
           {/* Col 1: Brand */}
           <div className="space-y-3">
             <h3 className="font-serif font-bold text-lg tracking-[0.25em] text-amber-200 uppercase">
-              AURA LUXE
+              LAYAL
             </h3>
             <p className="text-[11px] text-zinc-500 font-mono uppercase tracking-widest leading-relaxed">
               Haute Parfumerie & Niche Fragrances
@@ -82,7 +82,7 @@ export const Footer: React.FC = () => {
 
         {/* Lower Studio Signature Bar */}
         <div className="pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-zinc-600 font-mono">
-          <p>© {new Date().getFullYear()} AURA LUXE. All Rights Reserved.</p>
+          <p>© {new Date().getFullYear()} LAYAL PERFUMES. All Rights Reserved.</p>
 
           <p className="text-zinc-500 font-sans tracking-wide">
             Designed & Engineered by{' '}

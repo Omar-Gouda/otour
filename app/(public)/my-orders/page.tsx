@@ -72,7 +72,7 @@ export default function MyOrdersPage() {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-serif font-bold text-amber-200">Track Your Orders</h1>
           <p className="text-xs text-zinc-400 font-sans">
-            Enter your Order Code (e.g. AURA-XXXXXX) or Phone Number to view status details.
+            Enter your Order Code (e.g. LYL-XXXXXX) or Phone Number to view status details.
           </p>
         </div>
 

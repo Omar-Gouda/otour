@@ -51,7 +51,7 @@ export default function CheckoutPage() {
         const adminPhone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '201111902532';
 
         // 2. Prepare WhatsApp Text Message
-        const message = `👑 *AURA LUXE - New Order!*%0A%0A` +
+        const message = `👑 * LAYAL - New Order!*%0A%0A` +
         `*Order Code:* ${newOrder.order_code}%0A` +
         `*Name:* ${customerName}%0A` +
         `*Phone:* ${customerPhone}%0A` +

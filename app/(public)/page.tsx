@@ -68,7 +68,7 @@ export default function HomePage() {
           {/* Luxury Hero Banner */}
           <section className="relative text-center py-10 px-6 rounded-2xl bg-gradient-to-b from-zinc-900/90 via-zinc-950 to-zinc-950 border border-amber-500/20 shadow-2xl mb-8">
             <h1 className="text-3xl sm:text-5xl font-serif font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-400 mb-2">
-              AURA LUXE PERFUME
+              LAYAL's PERFUME
             </h1>
             <p className="text-zinc-400 text-xs sm:text-sm tracking-widest uppercase font-sans">
               A premium online fragrance boutique

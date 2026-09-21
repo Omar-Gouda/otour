@@ -68,7 +68,7 @@ export default function AdminDashboardPage() {
         {/* Header */}
         <div className="flex justify-between items-center border-b border-zinc-800 pb-6">
           <div>
-            <h1 className="text-2xl font-serif font-bold text-amber-300">AURA LUXE Executive Dashboard</h1>
+            <h1 className="text-2xl font-serif font-bold text-amber-300">LAYAL Executive Dashboard</h1>
             <p className="text-xs text-zinc-400 mt-1">Live metrics, visits, order tracking, and review moderation</p>
           </div>
           <Link href="/admin/control-center">

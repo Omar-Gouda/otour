@@ -22,11 +22,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "AURA LUXE | Haute Parfumerie",
-    template: "%s | AURA LUXE",
+    default: "LAYAL | Haute Parfumerie",
+    template: "%s | LAYAL",
   },
   description: "A premium online fragrance boutique curating rare, authentic luxury perfumes.",
-  keywords: ["AURA LUXE", "Perfumes", "Luxurious Fragrances", "Haute Parfumerie"],
+  keywords: ["LAYAL", "Perfumes", "Luxurious Fragrances", "Haute Parfumerie"],
   authors: [{ name: "Omar Gouda" }],
  icons: {
     icon: "/icon.svg",

@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
           <div className="w-12 h-12 rounded-full bg-purple-900/30 border border-purple-500/40 flex items-center justify-center mx-auto mb-3">
             <ShieldCheck className="w-6 h-6 text-purple-300" />
           </div>
-          <h1 className="text-2xl font-serif font-bold text-zinc-100">AURA LUXE Control</h1>
+          <h1 className="text-2xl font-serif font-bold text-zinc-100">LAYAL's Control</h1>
           <p className="text-xs text-zinc-400 mt-1">Authorized Admin Sign In Only</p>
         </div>
 
@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@auraluxe.com"
+              placeholder="user@admin.com"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-purple-500"
             />
           </div>

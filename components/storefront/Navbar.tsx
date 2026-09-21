@@ -20,7 +20,7 @@ export const Navbar: React.FC = () => {
           {/* Logo */}
           <Link href="/" className="flex flex-col shrink-0">
             <span className="font-serif font-bold text-base sm:text-2xl tracking-[0.15em] sm:tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-400 uppercase">
-              AURA LUXE
+              LAYAL
             </span>
             <span className="text-[8px] sm:text-[10px] font-mono tracking-[0.2em] text-zinc-500 uppercase -mt-0.5 hidden xs:block">
               Parfums Haute Parfumerie
