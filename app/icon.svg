@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%">
+  <!-- Background Disc -->
+  <circle cx="32" cy="32" r="30" fill="#09090b" stroke="#d97706" stroke-width="2"/>
+  
+  <!-- Golden Crown / Perfume Emblem -->
+  <path fill="url(#goldGradient)" d="M32 14l5.5 10.5L49 20l-4.5 14h-25L15 20l11.5 4.5L32 14z M19.5 37h25v3.5h-25z M22 43.5h20v2.5H22z"/>
+  
+  <!-- Sparkle Gem Star Top -->
+  <circle cx="32" cy="11" r="2" fill="#fbbf24"/>
+  
+  <defs>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+</svg>
