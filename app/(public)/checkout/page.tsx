@@ -123,7 +123,7 @@ export default function CheckoutPage() {
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-100 focus:border-amber-500 focus:outline-none"
-                placeholder="e.g. 01017009415"
+                placeholder="e.g. 0100000000"
               />
             </div>
 
