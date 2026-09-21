@@ -54,7 +54,7 @@ export const PromoModal: React.FC<PromoModalProps> = ({ isOpen, onClose, onSave 
               required
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="e.g. OMAR10"
+              placeholder="e.g. LAYAL10"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-amber-300 font-mono uppercase focus:border-amber-500 focus:outline-none"
             />
           </div>

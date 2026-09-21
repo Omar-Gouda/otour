@@ -151,7 +151,7 @@ export default function CheckoutPage() {
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-100 focus:border-amber-500 focus:outline-none"
-                placeholder="e.g. Omar Gouda"
+                placeholder="e.g. John Doe"
               />
             </div>
 
@@ -163,7 +163,7 @@ export default function CheckoutPage() {
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-100 focus:border-amber-500 focus:outline-none"
-                placeholder="e.g. 01017009415"
+                placeholder="e.g. 01000000000"
               />
             </div>
 
@@ -191,7 +191,7 @@ export default function CheckoutPage() {
                 type="text"
                 value={promoInput}
                 onChange={(e) => setPromoInput(e.target.value)}
-                placeholder="Enter Code (e.g. OMAR10)"
+                placeholder="Enter Code (e.g. LAYAL10)"
                 className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs uppercase font-mono text-amber-300 focus:border-amber-500 focus:outline-none"
               />
               <Button
