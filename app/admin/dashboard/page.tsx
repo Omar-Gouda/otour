@@ -159,9 +159,9 @@ export default function AdminDashboardPage() {
                           className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs text-zinc-200 focus:border-amber-500 focus:outline-none"
                         >
                           <option value="pending">Pending</option>
-                          <option value="shipped">Shipped 🚚</option>
-                          <option value="delivered">Delivered ✅</option>
-                          <option value="cancelled">Cancelled ❌</option>
+                          <option value="shipped">Shipped</option>
+                          <option value="delivered">Delivered</option>
+                          <option value="cancelled">Cancelled</option>
                         </select>
                       </td>
                       <td className="p-4 text-right">
