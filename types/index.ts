@@ -8,7 +8,7 @@ export interface Product {
   is_best_seller?: boolean;
   is_hot?: boolean;
   is_available: boolean;
-  stock_quantity?: number; // <--- Zood `?` hena
+  stock_quantity?: number;
   thumbnail_url: string;
   images_urls?: string[];
 }
