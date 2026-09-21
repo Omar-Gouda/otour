@@ -47,6 +47,21 @@ export default function CheckoutPage() {
         items: orderItems,
       });
 
+      // 1. Get Admin WhatsApp Number from .env
+        const adminPhone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '201111902532';
+
+        // 2. Prepare WhatsApp Text Message
+        const message = `👑 *AURA LUXE - New Order!*%0A%0A` +
+        `*Order Code:* ${newOrder.order_code}%0A` +
+        `*Name:* ${customerName}%0A` +
+        `*Phone:* ${customerPhone}%0A` +
+        `*Address:* ${customerAddress}%0A` +
+        `*Total Amount:* ${totalAmount} EGP%0A%0A` +
+        `Please confirm my order. Thank you!`;
+
+        // 3. Open WhatsApp Web / App directly to Admin Number
+        window.open(`https://api.whatsapp.com/send?phone=${adminPhone}&text=${message}`, '_blank');
+
       clearCart();
       router.push(`/receipt/${newOrder.order_code}`);
     } catch (error) {

@@ -1,104 +1,90 @@
 import { createClient } from '@/lib/supabase/client';
 import { Order } from '@/types';
 
-const supabase = createClient();
+export const createOrder = async (orderData: {
+  customer_name: string;
+  customer_phone: string;
+  customer_address: string;
+  total_amount: number;
+  items: any[];
+}) => {
+  const supabase = createClient();
 
-export const createOrder = async (
-  orderData: Omit<Order, 'id' | 'order_code' | 'status' | 'created_at'>
-) => {
-  const orderCode = `AURA-${Math.floor(100000 + Math.random() * 900000)}`;
+  // Generate unique order code (e.g., AURA-8X2K9P)
+  const order_code = `AURA-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+  const payload = {
+    order_code,
+    customer_name: orderData.customer_name,
+    customer_phone: orderData.customer_phone,
+    address: orderData.customer_address, // <--- Fixed to match Supabase column 'address'
+    total_amount: orderData.total_amount,
+    items: orderData.items,
+    status: 'pending',
+  };
 
   const { data, error } = await supabase
     .from('orders')
-    .insert([{ ...orderData, order_code: orderCode, status: 'pending' }])
+    .insert([payload])
     .select()
     .single();
 
-  if (error) throw error;
-
-  // Save Order Code locally for guest tracking
-  if (typeof window !== 'undefined') {
-    const existingCodes = JSON.parse(localStorage.getItem('aura_luxe_orders') || '[]');
-    localStorage.setItem('aura_luxe_orders', JSON.stringify([...existingCodes, orderCode]));
-  }
-
-  // Deduct Stock Quantity
-  for (const item of orderData.items) {
-    const { data: prod } = await supabase
-      .from('products')
-      .select('stock_quantity')
-      .eq('id', item.product_id)
-      .maybeSingle();
-
-    if (prod && typeof prod.stock_quantity === 'number') {
-      const newStock = Math.max(0, prod.stock_quantity - item.quantity);
-      await supabase
-        .from('products')
-        .update({
-          stock_quantity: newStock,
-          is_available: newStock > 0,
-        })
-        .eq('id', item.product_id);
-    }
+  if (error) {
+    console.error('Error creating order in Supabase:', error);
+    throw error;
   }
 
   return data as Order;
 };
 
-export const getOrderByCode = async (orderCode: string) => {
+export const getOrderByCode = async (code: string): Promise<Order | null> => {
+  const supabase = createClient();
+
   const { data, error } = await supabase
     .from('orders')
     .select('*')
-    .eq('order_code', orderCode.trim())
-    .maybeSingle();
+    .eq('order_code', code)
+    .single();
 
-  if (error || !data) return null;
+  if (error || !data) {
+    return null;
+  }
+
   return data as Order;
 };
 
-export const getOrdersByCodes = async (codes: string[]) => {
-  if (!codes || codes.length === 0) return [];
+export const getAllOrders = async (): Promise<Order[]> => {
+  const supabase = createClient();
 
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*')
-    .in('order_code', codes)
-    .order('created_at', { ascending: false });
-
-  if (error) return [];
-  return data as Order[];
-};
-
-export const getOrderByCodeAndPhone = async (orderCode: string, phone: string) => {
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*')
-    .eq('order_code', orderCode.trim())
-    .eq('customer_phone', phone.trim())
-    .maybeSingle();
-
-  if (error || !data) return null;
-  return data as Order;
-};
-
-export const getAllOrders = async () => {
   const { data, error } = await supabase
     .from('orders')
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (error) return [];
+  if (error || !data) {
+    return [];
+  }
+
   return data as Order[];
 };
 
-export const updateOrderStatus = async (orderId: string, status: Order['status']) => {
+export const updateOrderStatus = async (
+  id: string,
+  status: 'pending' | 'shipped' | 'delivered' | 'cancelled'
+) => {
+  const supabase = createClient();
+
   const { data, error } = await supabase
     .from('orders')
     .update({ status })
-    .eq('id', orderId)
+    .eq('id', id)
     .select()
     .single();
 
-  if (error) throw error;
-  return data as Order;
+  if (error) {
+    console.error('Error updating order status:', error);
+    throw error;
+  }
+
+  return data;
 };
