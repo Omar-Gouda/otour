@@ -17,7 +17,7 @@ export default function WishlistPage() {
 
       <main className="flex-1 max-w-4xl mx-auto px-4 py-10 w-full">
         <h1 className="text-3xl font-serif font-bold text-amber-200 text-center mb-8">
-          Wishlist (Buy Later)
+          Wishlist
         </h1>
 
         {wishlist.length === 0 ? (
