@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { AppProvider } from '@/context/AppContext';
+import { ToastProvider } from '@/components/ui/Toast';
 import { Footer } from '@/components/storefront/Footer';
 import { Cinzel, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
   description: "A premium online fragrance boutique curating rare, authentic luxury perfumes.",
   keywords: ["LAYAL", "Perfumes", "Luxurious Fragrances", "Haute Parfumerie"],
   authors: [{ name: "Omar Gouda" }],
- icons: {
+  icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",
   },
@@ -41,12 +42,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`dark ${cinzel.variable} ${jakarta.variable}`}>
       <body className="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col selection:bg-amber-500 selection:text-black">
         <AppProvider>
-          <div className="flex-1 flex flex-col">
-            {children}
-          </div>
-          <Footer />
+          <ToastProvider>
+            <div className="flex-1 flex flex-col">
+              {children}
+            </div>
+            <Footer />
+          </ToastProvider>
         </AppProvider>
       </body>
     </html>
   );
-}
+};

@@ -5,15 +5,19 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Product } from '@/types';
 import { Badge } from './Badge';
-import { ShoppingBag, Star, Heart } from 'lucide-react';
+import { ShoppingBag, Star, Heart, Plus, Minus } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { getProductAverageRating } from '@/services/reviews.service';
+import { useToast } from '@/components/ui/Toast';
 
 export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
+  const cart = useAppStore((state) => state.cart);
   const addToCart = useAppStore((state) => state.addToCart);
+  const updateQuantity = useAppStore((state) => state.updateQuantity);
   const toggleWishlist = useAppStore((state) => state.toggleWishlist);
   const isInWishlist = useAppStore((state) => state.isInWishlist(product.id));
 
+  const { showToast } = useToast();
   const [ratingData, setRatingData] = useState<{ average: number; count: number } | null>(null);
 
   useEffect(() => {
@@ -32,6 +36,9 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
     product.discount_price !== undefined &&
     product.discount_price < product.price
   );
+
+  const cartItem = cart.find((item) => item.product.id === product.id);
+  const quantityInCart = cartItem ? cartItem.quantity : 0;
 
   return (
     <div
@@ -75,8 +82,8 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 
           {/* Wishlist Button */}
           <button
-            onClick={() => toggleWishlist(product)}
-            className="absolute top-3 right-3 p-2 rounded-full bg-zinc-950/80 border border-zinc-800 text-zinc-300 hover:text-amber-400 transition-colors z-10"
+            onClick={() => toggleWishlist(product, showToast)}
+            className="absolute top-3 right-3 p-2 rounded-full bg-zinc-950/80 border border-zinc-800 text-zinc-300 hover:text-amber-400 transition-colors z-10 cursor-pointer"
             title="Wishlist"
           >
             <Heart className={`w-4 h-4 ${isInWishlist ? 'fill-amber-400 text-amber-400' : ''}`} />
@@ -106,7 +113,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         </div>
       </div>
 
-      {/* Pricing & Add Button */}
+      {/* Pricing & Quantity/Add Controls */}
       <div className="p-4 pt-0 flex flex-col gap-3">
         <div className="flex items-center justify-center gap-2">
           {hasDiscount ? (
@@ -121,7 +128,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 
         <div className="grid grid-cols-2 gap-2">
           <Link href={`/product/${product.id}`}>
-            <button className="w-full py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-semibold text-[11px] uppercase tracking-wider transition-all">
+            <button className="w-full py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-semibold text-[11px] uppercase tracking-wider transition-all cursor-pointer">
               View
             </button>
           </Link>
@@ -133,10 +140,28 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             >
               Unavailable
             </button>
+          ) : quantityInCart > 0 ? (
+            <div className="flex items-center justify-between bg-zinc-900 border border-amber-500/40 rounded-lg px-1.5 py-1 font-mono">
+              <button
+                onClick={() => updateQuantity(product.id, quantityInCart - 1)}
+                className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-amber-300 transition-colors cursor-pointer"
+              >
+                <Minus className="w-3 h-3" />
+              </button>
+              <span className="text-amber-300 font-bold text-xs">
+                {quantityInCart}
+              </span>
+              <button
+                onClick={() => updateQuantity(product.id, quantityInCart + 1)}
+                className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-amber-300 transition-colors cursor-pointer"
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
           ) : (
             <button
-              onClick={() => addToCart(product)}
-              className="w-full py-2 rounded-lg bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-black font-bold text-[11px] uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-1"
+              onClick={() => addToCart(product, showToast)}
+              className="w-full py-2 rounded-lg bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-black font-bold text-[11px] uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
             >
               <ShoppingBag className="w-3.5 h-3.5" /> Add
             </button>

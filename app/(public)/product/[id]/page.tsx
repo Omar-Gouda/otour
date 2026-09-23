@@ -11,7 +11,8 @@ import { getProductById } from '@/services/products.service';
 import { getProductReviews, getProductAverageRating } from '@/services/reviews.service';
 import { useAppStore } from '@/lib/store';
 import { Product, Review } from '@/types';
-import { ArrowLeft, ShoppingBag, Heart, MessageCircle, Star, ShieldCheck, Truck, Sparkles } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Heart, MessageCircle, Star, ShieldCheck, Truck, Sparkles, Plus, Minus } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 export default function ProductDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -22,9 +23,13 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
   const [ratingInfo, setRatingInfo] = useState<{ average: number; count: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const cart = useAppStore((state) => state.cart);
   const addToCart = useAppStore((state) => state.addToCart);
+  const updateQuantity = useAppStore((state) => state.updateQuantity);
   const toggleWishlist = useAppStore((state) => state.toggleWishlist);
   const wishlist = useAppStore((state) => state.wishlist);
+
+  const { showToast } = useToast();
 
   useEffect(() => {
     async function loadData() {
@@ -75,6 +80,9 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
 
   const isInWishlist = wishlist.some((item) => item.id === product.id);
   const isOutOfStock = !product.is_available || (product.stock_quantity !== undefined && product.stock_quantity <= 0);
+
+  const cartItem = cart.find((item) => item.product.id === product.id);
+  const quantityInCart = cartItem ? cartItem.quantity : 0;
 
   const adminPhone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '201017009415';
   const whatsappMsg = `Hello LAYAL,%0AI am interested in ordering: *${product.title}* (${product.discount_price ?? product.price} EGP).`;
@@ -129,7 +137,6 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
                   {product.category.replace('_', ' ')}
                 </span>
                 
-                {/* Volume (ML) Badge */}
                 {product.volume_ml && (
                   <span className="px-3 py-1 bg-zinc-900 border border-zinc-800 text-amber-300 text-xs font-mono font-bold rounded-lg tracking-wider">
                     {product.volume_ml} ML
@@ -141,7 +148,6 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
                 {product.title}
               </h1>
 
-              {/* Rating Summary */}
               {ratingInfo && (
                 <div className="flex items-center gap-2 pt-1">
                   <div className="flex items-center gap-1 text-amber-400">
@@ -185,26 +191,40 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
                   <Button disabled className="w-full bg-zinc-800/80 text-zinc-500 cursor-not-allowed py-3 text-xs uppercase font-bold border border-zinc-800">
                     Currently Out of Stock
                   </Button>
-                  <button
-                    disabled
-                    className="w-full flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 text-zinc-600 font-bold py-3 px-4 rounded-xl text-xs uppercase cursor-not-allowed opacity-60"
-                  >
-                    <MessageCircle className="w-4 h-4" /> Ordering Unavailable
-                  </button>
                 </div>
               ) : (
                 <>
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={() => addToCart(product)}
-                      className="flex-1 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-black font-bold py-3 text-xs uppercase tracking-wider gap-2 shadow-lg"
-                    >
-                      <ShoppingBag className="w-4 h-4" /> Add to Shopping Bag
-                    </Button>
+                  <div className="flex gap-3 items-center">
+                    {quantityInCart > 0 ? (
+                      <div className="flex-1 flex items-center justify-between bg-zinc-900 border border-amber-500/40 rounded-xl p-2.5 font-mono">
+                        <button
+                          onClick={() => updateQuantity(product.id, quantityInCart - 1)}
+                          className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-300 transition-colors cursor-pointer"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="text-amber-300 font-bold text-sm">
+                          {quantityInCart} in Bag
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(product.id, quantityInCart + 1)}
+                          className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-300 transition-colors cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={() => addToCart(product, showToast)}
+                        className="flex-1 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-black font-bold py-3 text-xs uppercase tracking-wider gap-2 shadow-lg cursor-pointer"
+                      >
+                        <ShoppingBag className="w-4 h-4" /> Add to Shopping Bag
+                      </Button>
+                    )}
 
                     <button
-                      onClick={() => toggleWishlist(product)}
-                      className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-amber-400 transition-colors"
+                      onClick={() => toggleWishlist(product, showToast)}
+                      className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-amber-400 transition-colors cursor-pointer"
                       title="Wishlist"
                     >
                       <Heart className={`w-5 h-5 ${isInWishlist ? 'fill-amber-400 text-amber-400' : ''}`} />

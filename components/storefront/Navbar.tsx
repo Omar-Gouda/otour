@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, Heart, Package, LogOut, LayoutDashboard, SlidersHorizontal, Menu, X } from 'lucide-react';
+import { ShoppingBag, Heart, Package, LogOut, LayoutDashboard, SlidersHorizontal, Menu, X, Home } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/client';
 
@@ -43,7 +43,7 @@ export function Navbar() {
           LAYAL
         </Link>
 
-        {/* Desktop View Action Icons (Original intact) */}
+        {/* Desktop View Action Icons */}
         <div className="hidden md:flex items-center gap-4">
           
           <Link
@@ -99,7 +99,7 @@ export function Navbar() {
 
               <button
                 onClick={handleLogout}
-                className="p-2 text-rose-400 hover:text-rose-300 transition-colors"
+                className="p-2 text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
                 title="Logout Admin"
               >
                 <LogOut className="w-5 h-5" />
@@ -127,7 +127,7 @@ export function Navbar() {
 
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 text-zinc-300 hover:text-amber-300 transition-colors border border-zinc-800 rounded-lg"
+            className="p-2 text-zinc-300 hover:text-amber-300 transition-colors border border-zinc-800 rounded-lg cursor-pointer"
             aria-label="Toggle Menu"
           >
             {isMobileMenuOpen ? <X className="w-5 h-5 text-amber-400" /> : <Menu className="w-5 h-5" />}
@@ -141,6 +141,16 @@ export function Navbar() {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-zinc-950/95 border-b border-zinc-800/80 px-4 py-4 space-y-3 font-mono text-xs animate-in fade-in duration-200">
           
+          {/* Added Home Link */}
+          <Link
+            href="/"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-amber-300"
+          >
+            <Home className="w-4 h-4 text-amber-400" />
+            <span>Home</span>
+          </Link>
+
           <Link
             href="/my-orders"
             onClick={() => setIsMobileMenuOpen(false)}
@@ -190,7 +200,7 @@ export function Navbar() {
 
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-bold"
+                className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-bold cursor-pointer"
               >
                 <LogOut className="w-4 h-4 text-rose-400" />
                 <span>Logout Admin</span>

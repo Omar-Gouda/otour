@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Navbar } from '@/components/storefront/Navbar';
 import { Hero } from '@/components/storefront/Hero';
@@ -9,10 +9,23 @@ import { ProductGrid } from '@/components/storefront/ProductGrid';
 import { FragranceCategory } from '@/types';
 
 export default function CatalogPage() {
-  const { products, loading } = useApp();
+  const { products, loading, refreshProducts } = useApp();
 
   const [activeTab, setActiveTab] = useState<'general' | 'bestsellers' | 'discounts'>('general');
   const [selectedCategory, setSelectedCategory] = useState<FragranceCategory | 'all'>('all');
+
+  // Refresh products automatically when the catalog page mounts or gains focus
+  useEffect(() => {
+    refreshProducts();
+    
+    const handleFocus = () => {
+      refreshProducts();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshProducts]);
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory =
