@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { SlidersHorizontal } from 'lucide-react';
 import { updateOrderStatus } from '@/services/orders.service';
 import { deleteReview } from '@/services/reviews.service';
+import { OrderStatus } from '@/types';
 import Link from 'next/link';
 
 export default function AdminDashboardPage() {
@@ -18,9 +19,9 @@ export default function AdminDashboardPage() {
     window.location.reload();
   };
 
-  const handleStatusUpdate = async (orderId: string, orderCode: string, newStatus: string) => {
+  const handleStatusUpdate = async (orderId: string, orderCode: string, newStatus: OrderStatus) => {
     try {
-      await updateOrderStatus(orderId, newStatus as any);
+      await updateOrderStatus(orderId, newStatus);
       handleRefresh();
     } catch (err) {
       console.error('Failed to update status:', err);
@@ -71,7 +72,7 @@ export default function AdminDashboardPage() {
           orders={orders}
           loading={loading}
           onRefresh={handleRefresh}
-          onRequestStatusChange={(orderId: string, orderCode: string, newStatus: string) => {
+          onRequestStatusChange={(orderId: string, orderCode: string, newStatus: OrderStatus) => {
             handleStatusUpdate(orderId, orderCode, newStatus);
           }}
         />

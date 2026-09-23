@@ -4,7 +4,7 @@ import { Review } from '@/types';
 import { Layers, Trash2, User } from 'lucide-react';
 
 interface ReviewsModerationListProps {
-  reviews: any[];
+  reviews: Review[];
   onRequestDelete: (reviewId: string) => void;
 }
 

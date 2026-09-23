@@ -36,7 +36,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   return (
     <div
       className={`group relative bg-zinc-900/70 border border-amber-500/20 rounded-xl overflow-hidden hover:border-amber-400/60 transition-all duration-500 flex flex-col justify-between ${
-        isOutOfStock ? 'opacity-60 grayscale-[0.3]' : ''
+        isOutOfStock ? 'opacity-50 grayscale-[0.5]' : ''
       }`}
     >
       <div>
@@ -64,6 +64,15 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             )}
           </div>
 
+          {/* Volume Badge (ML) */}
+          {product.volume_ml && (
+            <div className="absolute bottom-3 left-3 z-10">
+              <span className="px-2 py-0.5 bg-zinc-950/80 border border-zinc-800 text-amber-300 text-[10px] font-mono font-bold rounded-md uppercase tracking-wider">
+                {product.volume_ml} ML
+              </span>
+            </div>
+          )}
+
           {/* Wishlist Button */}
           <button
             onClick={() => toggleWishlist(product)}
@@ -82,7 +91,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             </h3>
           </Link>
 
-          {/* Dynamic Real Ratings (Only rendered if actual reviews exist) */}
+          {/* Dynamic Real Ratings */}
           <div className="flex items-center justify-center gap-1 mt-2 text-amber-400 text-xs font-semibold h-4">
             {ratingData ? (
               <>
@@ -119,10 +128,10 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 
           {isOutOfStock ? (
             <button
-              onClick={() => toggleWishlist(product)}
-              className="w-full py-2 rounded-lg bg-zinc-800 text-amber-400/80 border border-amber-500/20 font-bold text-[10px] uppercase tracking-wider hover:bg-zinc-700"
+              disabled
+              className="w-full py-2 rounded-lg bg-zinc-900 text-zinc-600 border border-zinc-800 font-bold text-[10px] uppercase tracking-wider cursor-not-allowed"
             >
-              Wishlist
+              Unavailable
             </button>
           ) : (
             <button

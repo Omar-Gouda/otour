@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/lib/store';
 import { Heart, ShoppingBag, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function WishlistPage() {
   const wishlist = useAppStore((state) => state.wishlist);
@@ -38,9 +39,11 @@ export default function WishlistPage() {
                 className="bg-zinc-900/60 border border-zinc-800 p-4 rounded-xl flex items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-4">
-                  <img
+                  <Image
                     src={item.thumbnail_url}
                     alt={item.title}
+                    width={64}
+                    height={64}
                     className="w-16 h-16 object-cover rounded-lg border border-zinc-800"
                   />
                   <div>

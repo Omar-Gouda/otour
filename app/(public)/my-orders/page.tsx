@@ -75,7 +75,7 @@ export default function MyOrdersPage() {
 
         <div className="space-y-4">
           {orders.map((ord) => {
-            const code = ord.tracking_code || (ord as any).order_code || 'N/A';
+            const code = ord.tracking_code || ord.order_code || 'N/A';
             return (
               <div key={ord.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-3 text-xs">

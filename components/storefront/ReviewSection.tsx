@@ -80,7 +80,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                 </div>
                 <p className="text-xs text-zinc-300 leading-relaxed">{rev.comment}</p>
                 <p className="text-[10px] text-zinc-500">
-                  {new Date(rev.created_at ?? Date.now()).toLocaleDateString()}
+                  {rev.created_at ? new Date(rev.created_at).toLocaleDateString() : 'Date unavailable'}
                 </p>
               </div>
             ))
@@ -99,7 +99,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-100 focus:border-amber-500 focus:outline-none"
-              placeholder="e.g. Omar Gouda"
+              placeholder="Your display name"
             />
           </div>
 

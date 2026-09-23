@@ -1,9 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
-import { Order, CartItem } from '@/types';
+import { Order, CartItem, OrderStatus, BillingDetails } from '@/types';
 
-/**
- * Fetch all orders for admin dashboard & management (Safe fetch with manual items mapping)
- */
 export const getOrders = async (): Promise<Order[]> => {
   const supabase = createClient();
   
@@ -39,15 +36,11 @@ export const getOrders = async (): Promise<Order[]> => {
 
 export const getAllOrders = getOrders;
 
-/**
- * Fetch a single order by its code
- */
 export const getOrderByCode = async (code: string): Promise<Order | null> => {
   const supabase = createClient();
   const cleanCode = code.trim();
 
-  // Try fetching by order_code first, then tracking_code
-  let { data: ordersData, error } = await supabase
+  let { data: ordersData } = await supabase
     .from('orders')
     .select('*')
     .ilike('order_code', cleanCode)
@@ -66,39 +59,45 @@ export const getOrderByCode = async (code: string): Promise<Order | null> => {
     return null;
   }
 
+  // Fetch from order_items table first
   const { data: itemsData } = await supabase
     .from('order_items')
     .select('*, product:products(*)')
     .eq('order_id', ordersData.id);
 
+  // Fallback to orders.items JSON column if order_items is empty
+  const resolvedItems = itemsData && itemsData.length > 0 
+    ? itemsData 
+    : (Array.isArray(ordersData.items) ? ordersData.items.map((it: any) => ({
+        product_id: it.product_id || '',
+        quantity: it.quantity || 1,
+        unit_price: it.price || it.unit_price || 0,
+        product: { title: it.product_title || 'Luxury Fragrance' }
+      })) : []);
+
   return {
     ...ordersData,
     tracking_code: ordersData.tracking_code || ordersData.order_code,
     order_code: ordersData.order_code || ordersData.tracking_code,
-    items: itemsData || [],
+    items: resolvedItems,
   } as Order;
 };
 
 export const getOrderByTrackingCode = getOrderByCode;
 
-/**
- * Flexible order search by order code or phone number
- */
 export const searchOrdersFlexible = async (query: string): Promise<Order[]> => {
   const cleanQuery = query.trim();
   if (!cleanQuery) return [];
 
   const supabase = createClient();
   
-  // Search using order_code and customer_phone safely
   const { data: ordersData, error } = await supabase
     .from('orders')
     .select('*')
-    .or(`order_code.ilike.%${cleanQuery}%,tracking_code.ilike.%${cleanQuery}%,customer_phone.ilike.%${cleanQuery}%`)
+    .or(`order_code.ilike.%${cleanQuery}%,customer_phone.ilike.%${cleanQuery}%`)
     .order('created_at', { ascending: false });
 
   if (error) {
-    // Fallback search if .or fails
     const { data: fallbackData } = await supabase
       .from('orders')
       .select('*')
@@ -139,33 +138,44 @@ export const searchOrdersFlexible = async (query: string): Promise<Order[]> => {
   })) as Order[];
 };
 
-/**
- * Create a new customer order along with its order items
- */
-export const createOrder = async (orderData: {
-  customer_name: string;
-  customer_phone: string;
-  address: string;
-  city: string;
+export const createOrder = async (orderData: BillingDetails & {
   items: CartItem[];
   total_amount: number;
-}): Promise<{ trackingCode: string }> => {
+}): Promise<{ trackingCode: string; whatsappUrl: string }> => {
   const supabase = createClient();
 
   const orderCode = `LYL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  
+  // Tarteeb nazam al-address bi-diqah
+  const fullAddress = [
+    orderData.street_address,
+    `Building ${orderData.building_number}`,
+    orderData.floor ? `Floor ${orderData.floor}` : null,
+    orderData.apartment ? `Apt ${orderData.apartment}` : null,
+    orderData.area,
+    orderData.city,
+    orderData.landmark ? `Landmark: ${orderData.landmark}` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  const formattedItems = orderData.items.map((item) => ({
+    product_title: item.product.title,
+    quantity: item.quantity,
+    price: item.product.discount_price ?? item.product.price,
+  }));
 
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert([
       {
         order_code: orderCode,
-        tracking_code: orderCode,
         customer_name: orderData.customer_name,
         customer_phone: orderData.customer_phone,
-        address: orderData.address,
-        city: orderData.city,
+        address: fullAddress,
         total_amount: orderData.total_amount,
         status: 'pending',
+        items: formattedItems,
       },
     ])
     .select()
@@ -176,31 +186,74 @@ export const createOrder = async (orderData: {
     throw new Error(orderError?.message || 'Failed to create order');
   }
 
-  const orderItemsPayload = orderData.items.map((item) => ({
-    order_id: order.id,
-    product_id: item.product.id,
-    quantity: item.quantity,
-    unit_price: item.product.discount_price ?? item.product.price,
-  }));
+  try {
+    const orderItemsPayload = orderData.items.map((item) => ({
+      order_id: order.id,
+      product_id: item.product.id,
+      quantity: item.quantity,
+      unit_price: item.product.discount_price ?? item.product.price,
+    }));
+    await supabase.from('order_items').insert(orderItemsPayload);
 
-  const { error: itemsError } = await supabase
-    .from('order_items')
-    .insert(orderItemsPayload);
-
-  if (itemsError) {
-    console.error('Detailed Supabase order items error:', JSON.stringify(itemsError, null, 2));
-    throw new Error(itemsError.message || 'Failed to attach items to order');
+    // Reduction of product stock quantities
+    for (const item of orderData.items) {
+      const newStock = Math.max(0, (item.product.stock_quantity || 0) - item.quantity);
+      await supabase
+        .from('products')
+        .update({ stock_quantity: newStock })
+        .eq('id', item.product.id);
+    }
+  } catch (e) {
+    console.error('Error updating stock or items:', e);
   }
 
-  return { trackingCode: orderCode };
+  // Fixing WhatsApp Number configuration (Fallback to admin phone securely)
+  const adminPhone = process.env.NEXT_PUBLIC_ADMIN_WHATSAPP_NUMBER || '201111902532';
+  
+  const itemLines = orderData.items
+    .map((item, index) => {
+      const unitPrice = item.product.discount_price ?? item.product.price;
+      return `${index + 1}. ${item.product.title} x${item.quantity} - ${unitPrice * item.quantity} EGP`;
+    })
+    .join('\n');
+
+  const message = [
+    `✨ *New LAYAL Order: ${orderCode}* ✨`,
+    '',
+    '👤 *Customer Details:*',
+    `Name: ${orderData.customer_name}`,
+    `Phone: ${orderData.customer_phone}`,
+    orderData.customer_alt_phone ? `Alt Phone: ${orderData.customer_alt_phone}` : null,
+    orderData.customer_email ? `Email: ${orderData.customer_email}` : null,
+    '',
+    '📍 *Shipping Address:*',
+    `City: ${orderData.city}`,
+    `Area: ${orderData.area}`,
+    `Street: ${orderData.street_address}`,
+    `Building: ${orderData.building_number}`,
+    orderData.floor ? `Floor: ${orderData.floor}` : null,
+    orderData.apartment ? `Apt: ${orderData.apartment}` : null,
+    orderData.landmark ? `Landmark: ${orderData.landmark}` : null,
+    orderData.delivery_notes ? `Notes: ${orderData.delivery_notes}` : null,
+    '',
+    `💳 *Payment:* ${orderData.payment_method}`,
+    '',
+    '🛍️ *Items:*',
+    itemLines,
+    '',
+    `💰 *Total Amount:* ${orderData.total_amount} EGP`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const whatsappUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
+
+  return { trackingCode: orderCode, whatsappUrl };
 };
 
-/**
- * Update order status
- */
 export const updateOrderStatus = async (
   orderId: string,
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+  status: OrderStatus
 ): Promise<void> => {
   const supabase = createClient();
   const { error } = await supabase
@@ -214,9 +267,6 @@ export const updateOrderStatus = async (
   }
 };
 
-/**
- * Delete an order
- */
 export const deleteOrder = async (orderId: string): Promise<void> => {
   const supabase = createClient();
   const { error } = await supabase

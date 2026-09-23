@@ -33,6 +33,7 @@ export function ProductModal({ isOpen, product, onClose, onSuccess }: ProductMod
   useEffect(() => {
     if (isOpen) {
       if (product) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFormData({
           title: product.title || '',
           description: product.description || '',
@@ -71,7 +72,7 @@ export function ProductModal({ isOpen, product, onClose, onSuccess }: ProductMod
     setIsSubmitting(true);
 
     try {
-      const payload = {
+      const payload: Omit<Product, 'id' | 'created_at'> = {
         title: formData.title,
         description: formData.description,
         price: Number(formData.price),
@@ -101,7 +102,7 @@ export function ProductModal({ isOpen, product, onClose, onSuccess }: ProductMod
     }
   };
 
-  const handleAccordChange = (index: number, field: 'name' | 'percentage', value: any) => {
+  const handleAccordChange = (index: number, field: 'name' | 'percentage', value: string | number) => {
     const updatedAccords = [...formData.accords];
     updatedAccords[index] = { ...updatedAccords[index], [field]: value };
     setFormData({ ...formData, accords: updatedAccords });

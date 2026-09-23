@@ -38,9 +38,9 @@ export const createProduct = async (
   productPayload: Omit<Product, 'id' | 'created_at'>
 ): Promise<Product> => {
   const supabase = createClient();
-  
-  // Clean payload: exclude optional DB fields not present in schema
-  const { image_urls, is_featured, ...cleanPayload } = productPayload as any;
+  const cleanPayload = { ...productPayload };
+  delete cleanPayload.image_urls;
+  delete cleanPayload.is_featured;
 
   const { data, error } = await supabase
     .from('products')
@@ -61,9 +61,9 @@ export const updateProduct = async (
   productPayload: Partial<Product>
 ): Promise<Product> => {
   const supabase = createClient();
-
-  // Clean payload: exclude optional DB fields
-  const { image_urls, is_featured, ...cleanPayload } = productPayload as any;
+  const cleanPayload = { ...productPayload };
+  delete cleanPayload.image_urls;
+  delete cleanPayload.is_featured;
 
   const { data, error } = await supabase
     .from('products')

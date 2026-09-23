@@ -35,6 +35,7 @@ export function ProductFormModal({ isOpen, product, onClose, onSuccess }: Produc
   useEffect(() => {
     if (isOpen) {
       if (product) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFormData({
           title: product.title || '',
           description: product.description || '',
@@ -77,7 +78,7 @@ export function ProductFormModal({ isOpen, product, onClose, onSuccess }: Produc
     setIsSubmitting(true);
 
     try {
-      const payload: Partial<Product> = {
+      const payload: Omit<Product, 'id' | 'created_at'> = {
         title: formData.title,
         description: formData.description,
         price: Number(formData.price),
@@ -96,7 +97,7 @@ export function ProductFormModal({ isOpen, product, onClose, onSuccess }: Produc
       if (product?.id) {
         await updateProduct(product.id, payload);
       } else {
-        await createProduct(payload as any);
+        await createProduct(payload);
       }
 
       onSuccess();

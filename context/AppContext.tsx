@@ -72,6 +72,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [refreshProducts, refreshOrders, refreshReviews, refreshPromos, checkAdminSession]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshAll();
   }, [refreshAll]);
 

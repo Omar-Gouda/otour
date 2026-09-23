@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Order } from '@/types';
-import { Package, Trash2, ChevronDown, CheckCircle2, Clock, Truck, XCircle } from 'lucide-react';
+import { Order, OrderStatus } from '@/types';
+import { Package, Trash2, ChevronDown } from 'lucide-react';
 import { updateOrderStatus, deleteOrder } from '@/services/orders.service';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
@@ -10,7 +10,7 @@ interface OrdersTableProps {
   orders: Order[];
   loading?: boolean;
   onRefresh?: () => void;
-  onRequestStatusChange?: (orderId: string, orderCode: string, newStatus: string) => void;
+  onRequestStatusChange?: (orderId: string, orderCode: string, newStatus: OrderStatus) => void;
 }
 
 export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange }: OrdersTableProps) {
@@ -30,7 +30,7 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleStatusChange = async (orderId: string, orderCode: string, status: string) => {
+  const handleStatusChange = async (orderId: string, orderCode: string, status: OrderStatus) => {
     setOpenDropdownId(null);
     if (onRequestStatusChange) {
       onRequestStatusChange(orderId, orderCode, status);
@@ -38,7 +38,7 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
     }
 
     try {
-      await updateOrderStatus(orderId, status as any);
+      await updateOrderStatus(orderId, status);
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Failed to update order status:', err);
@@ -59,7 +59,7 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
     }
   };
 
-  const getStatusConfig = (status: string) => {
+  const getStatusConfig = (status: OrderStatus | string) => {
     switch (status) {
       case 'delivered':
         return { label: 'Delivered', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' };
@@ -103,7 +103,7 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
               </thead>
               <tbody className="divide-y divide-zinc-800/60">
                 {orders.map((ord) => {
-                  const code = ord.tracking_code || (ord as any).order_code || 'N/A';
+                  const code = ord.tracking_code || ord.order_code || 'N/A';
                   const currentStatus = getStatusConfig(ord.status);
                   const isMenuOpen = openDropdownId === ord.id;
 
@@ -129,7 +129,7 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
 
                           {isMenuOpen && (
                             <div className="absolute left-0 mt-2 w-40 bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl z-50 overflow-hidden py-1.5 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-                              {['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map((st) => {
+                              {(['pending', 'processing', 'shipped', 'delivered', 'cancelled'] satisfies OrderStatus[]).map((st) => {
                                 const cfg = getStatusConfig(st);
                                 return (
                                   <button

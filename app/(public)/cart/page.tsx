@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Navbar } from '@/components/storefront/Navbar';
 import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/lib/store';
@@ -86,9 +87,11 @@ export default function CartPage() {
                   className="bg-zinc-900/60 border border-zinc-800 p-4 rounded-xl flex items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-4">
-                    <img
+                    <Image
                       src={item.product.thumbnail_url}
                       alt={item.product.title}
+                      width={64}
+                      height={64}
                       className="w-16 h-16 object-cover rounded-lg border border-zinc-800"
                     />
                     <div>

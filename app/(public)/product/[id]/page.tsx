@@ -124,9 +124,19 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
           {/* Product Information */}
           <div className="space-y-6">
             <div className="space-y-2">
-              <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-400">
-                {product.category.replace('_', ' ')}
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-400">
+                  {product.category.replace('_', ' ')}
+                </span>
+                
+                {/* Volume (ML) Badge */}
+                {product.volume_ml && (
+                  <span className="px-3 py-1 bg-zinc-900 border border-zinc-800 text-amber-300 text-xs font-mono font-bold rounded-lg tracking-wider">
+                    {product.volume_ml} ML
+                  </span>
+                )}
+              </div>
+
               <h1 className="text-2xl sm:text-4xl font-serif font-bold text-amber-100 uppercase tracking-wide leading-tight">
                 {product.title}
               </h1>
@@ -165,7 +175,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
               </p>
             </div>
 
-            {/* Main Accords Component (Hides automatically if accords are not set) */}
+            {/* Main Accords Component */}
             <AccordsBar accords={product.accords} />
 
             {/* Action Buttons */}
