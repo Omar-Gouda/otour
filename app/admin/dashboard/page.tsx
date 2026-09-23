@@ -13,16 +13,16 @@ import { OrderStatus } from '@/types';
 import Link from 'next/link';
 
 export default function AdminDashboardPage() {
-  const { orders, reviews, loading } = useApp();
+  const { orders, reviews, loading, refreshOrders, refreshReviews } = useApp();
 
-  const handleRefresh = () => {
-    window.location.reload();
+  const handleRefresh = async () => {
+    await Promise.all([refreshOrders(), refreshReviews()]);
   };
 
   const handleStatusUpdate = async (orderId: string, orderCode: string, newStatus: OrderStatus) => {
     try {
       await updateOrderStatus(orderId, newStatus);
-      handleRefresh();
+      await refreshOrders(); // Smooth state update without full page refresh
     } catch (err) {
       console.error('Failed to update status:', err);
     }
@@ -31,7 +31,7 @@ export default function AdminDashboardPage() {
   const handleDeleteReview = async (id: string) => {
     try {
       await deleteReview(id);
-      handleRefresh();
+      await refreshReviews(); // Smooth state update without full page refresh
     } catch (err) {
       console.error('Failed to delete review:', err);
     }
@@ -57,7 +57,7 @@ export default function AdminDashboardPage() {
           <Link href="/admin/control-center">
             <Button
               variant="secondary"
-              className="bg-zinc-900 border-amber-500/30 text-amber-300 hover:bg-amber-500/10 text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl transition-all flex items-center gap-2"
+              className="bg-zinc-900 border-amber-500/30 text-amber-300 hover:bg-amber-500/10 text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer"
             >
               <SlidersHorizontal className="w-4 h-4 text-amber-400" /> Products Control Center
             </Button>

@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Order, OrderStatus } from '@/types';
-import { Package, Trash2, ChevronDown } from 'lucide-react';
+import { Package, Trash2, ChevronDown, FileText } from 'lucide-react';
 import { updateOrderStatus, deleteOrder } from '@/services/orders.service';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { useToast } from '@/components/ui/Toast';
+import Link from 'next/link';
 
 interface OrdersTableProps {
   orders: Order[];
@@ -18,6 +20,7 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
   const [isDeleting, setIsDeleting] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { showToast } = useToast();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -34,14 +37,17 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
     setOpenDropdownId(null);
     if (onRequestStatusChange) {
       onRequestStatusChange(orderId, orderCode, status);
+      showToast(`Order status updated to ${status.toUpperCase()}`, 'success');
       return;
     }
 
     try {
       await updateOrderStatus(orderId, status);
+      showToast(`Order status updated to ${status.toUpperCase()}`, 'success');
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Failed to update order status:', err);
+      showToast('Failed to update order status', 'error');
     }
   };
 
@@ -50,9 +56,11 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
     setIsDeleting(true);
     try {
       await deleteOrder(deletingOrderId);
+      showToast('Order deleted successfully', 'success');
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Failed to delete order:', err);
+      showToast('Failed to delete order', 'error');
     } finally {
       setIsDeleting(false);
       setDeletingOrderId(null);
@@ -136,7 +144,7 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
                                     key={st}
                                     type="button"
                                     onClick={() => handleStatusChange(ord.id, code, st)}
-                                    className={`w-full text-left px-3.5 py-2 text-[11px] uppercase font-bold transition-colors flex items-center justify-between hover:bg-amber-500/10 hover:text-amber-300 ${
+                                    className={`w-full text-left px-3.5 py-2 text-[11px] uppercase font-bold transition-colors flex items-center justify-between hover:bg-amber-500/10 hover:text-amber-300 cursor-pointer ${
                                       ord.status === st ? 'text-amber-400 bg-amber-500/5' : 'text-zinc-300'
                                     }`}
                                   >
@@ -150,13 +158,26 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
                         </div>
                       </td>
                       <td className="py-3 px-3 text-right">
-                        <button
-                          onClick={() => setDeletingOrderId(ord.id)}
-                          className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                          title="Delete order"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* View Receipt Button */}
+                          <Link
+                            href={`/receipt/${code}`}
+                            target="_blank"
+                            className="p-1.5 text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="View Receipt"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Link>
+
+                          {/* Delete Order Button */}
+                          <button
+                            onClick={() => setDeletingOrderId(ord.id)}
+                            className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="Delete order"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
