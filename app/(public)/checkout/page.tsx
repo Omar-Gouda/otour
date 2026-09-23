@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { PaymentMethod } from '@/types';
 import { getActivePromoCode } from '@/services/promo.service';
 import { Tag } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
   cash_on_delivery: 'Cash on delivery',
@@ -20,6 +21,8 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, clearCart } = useAppStore();
+  const { showToast } = useToast();
+
   const [formData, setFormData] = useState({
     customer_name: '',
     customer_phone: '',
@@ -86,8 +89,19 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (cart.length === 0) return;
 
-    setIsSubmitting(true);
     setErrorMessage(null);
+
+    // Stock Validation Check with Simplified Toast Warning
+    for (const item of cart) {
+      const availableStock = item.product.stock_quantity ?? 0;
+      if (item.quantity > availableStock) {
+        const warningMsg = `Only ${availableStock} left in Stock for "${item.product.title}"`;
+        showToast(warningMsg, 'error');
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
 
     try {
       const res = await createOrder({
@@ -115,27 +129,23 @@ export default function CheckoutPage() {
       router.push(`/receipt/${res.trackingCode}`);
     } catch (err: unknown) {
       console.error('Checkout error details:', err);
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to place order.');
+      const errText = err instanceof Error ? err.message : 'Failed to place order.';
+      setErrorMessage(errText);
+      showToast(errText, 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-mono">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-mono selection:bg-amber-500 selection:text-black">
       <Navbar />
       <main className="flex-1 max-w-3xl mx-auto px-4 py-10 w-full space-y-6">
         <h1 className="font-serif text-2xl text-amber-200 font-bold uppercase tracking-wider">
           Checkout & Shipping
         </h1>
 
-        {errorMessage && (
-          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 p-4 rounded-xl text-xs">
-            <span className="font-bold">Error:</span> {errorMessage}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4 shadow-xl">
           <div className="space-y-1">
             <label className="text-xs text-zinc-400 uppercase">Full Name *</label>
             <input
@@ -282,7 +292,7 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={handleApplyPromo}
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-amber-300 font-bold rounded-xl text-xs uppercase"
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-amber-300 font-bold rounded-xl text-xs uppercase cursor-pointer"
               >
                 Apply
               </button>
@@ -299,7 +309,7 @@ export default function CheckoutPage() {
               required
               value={formData.payment_method}
               onChange={(e) => setFormData({ ...formData, payment_method: e.target.value as PaymentMethod })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-amber-300 focus:outline-none focus:border-amber-500 text-xs"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-amber-300 focus:outline-none focus:border-amber-500 text-xs cursor-pointer"
             >
               <option value="cash_on_delivery">Cash on delivery</option>
               <option value="instapay">Instapay</option>
@@ -325,7 +335,7 @@ export default function CheckoutPage() {
               <Button
                 type="submit"
                 disabled={isSubmitting || cart.length === 0}
-                className="bg-amber-500 hover:bg-amber-400 text-black font-bold uppercase tracking-wider text-xs px-6 py-3"
+                className="bg-amber-500 hover:bg-amber-400 text-black font-bold uppercase tracking-wider text-xs px-6 py-3 cursor-pointer"
               >
                 {isSubmitting ? 'Processing...' : 'Place Order'}
               </Button>

@@ -63,7 +63,7 @@ export const Footer: React.FC = () => {
                   rel="noopener noreferrer"
                   className="hover:text-amber-200 transition-colors"
                 >
-                  Concierge Support
+                  Looking for Support!
                 </a>
               </li>
             </ul>

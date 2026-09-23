@@ -22,7 +22,6 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -98,15 +97,16 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
         {orders.length === 0 ? (
           <p className="text-center py-8 text-zinc-500 text-xs">No orders registered in the system.</p>
         ) : (
-          <div className="overflow-x-visible">
-            <table className="w-full text-left border-collapse">
+          /* Scrollable Container for Mobile View */
+          <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+            <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
                 <tr className="border-b border-zinc-800 text-zinc-500 text-[10px] uppercase">
-                  <th className="py-2.5 px-3">Tracking Code</th>
-                  <th className="py-2.5 px-3">Customer</th>
-                  <th className="py-2.5 px-3">Total</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Tracking Code</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Customer</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Total</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Status</th>
+                  <th className="py-2.5 px-3 text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/60">
@@ -117,14 +117,13 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
 
                   return (
                     <tr key={ord.id} className="hover:bg-zinc-950/40 transition-colors relative">
-                      <td className="py-3 px-3 text-amber-300 font-bold">{code}</td>
-                      <td className="py-3 px-3">
+                      <td className="py-3 px-3 text-amber-300 font-bold whitespace-nowrap">{code}</td>
+                      <td className="py-3 px-3 whitespace-nowrap">
                         <span className="block font-bold text-zinc-200">{ord.customer_name}</span>
                         <span className="text-[10px] text-zinc-500">{ord.customer_phone}</span>
                       </td>
-                      <td className="py-3 px-3 font-bold text-amber-400">{ord.total_amount} EGP</td>
-                      <td className="py-3 px-3 relative">
-                        {/* Custom Luxury Dropdown */}
+                      <td className="py-3 px-3 font-bold text-amber-400 whitespace-nowrap">{ord.total_amount} EGP</td>
+                      <td className="py-3 px-3 relative whitespace-nowrap">
                         <div className="relative inline-block" ref={isMenuOpen ? dropdownRef : null}>
                           <button
                             type="button"
@@ -157,9 +156,8 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-right">
+                      <td className="py-3 px-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* View Receipt Button */}
                           <Link
                             href={`/receipt/${code}`}
                             target="_blank"
@@ -168,8 +166,6 @@ export function OrdersTable({ orders, loading, onRefresh, onRequestStatusChange 
                           >
                             <FileText className="w-4 h-4" />
                           </Link>
-
-                          {/* Delete Order Button */}
                           <button
                             onClick={() => setDeletingOrderId(ord.id)}
                             className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
