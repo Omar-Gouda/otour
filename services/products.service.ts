@@ -40,7 +40,7 @@ export const createProduct = async (
   const supabase = createClient();
   const cleanPayload = { ...productPayload };
   delete cleanPayload.image_urls;
-  delete cleanPayload.is_featured;
+  // Removed delete cleanPayload.is_featured to allow saving bestseller status successfully
 
   const { data, error } = await supabase
     .from('products')
@@ -63,7 +63,7 @@ export const updateProduct = async (
   const supabase = createClient();
   const cleanPayload = { ...productPayload };
   delete cleanPayload.image_urls;
-  delete cleanPayload.is_featured;
+  // Removed delete cleanPayload.is_featured to allow saving bestseller status successfully
 
   const { data, error } = await supabase
     .from('products')
@@ -91,4 +91,4 @@ export const deleteProduct = async (id: string): Promise<void> => {
     console.error('Error deleting product:', error);
     throw error;
   }
-};
+}

@@ -33,7 +33,7 @@ export default function CatalogPage() {
 
     let matchesTab = true;
     if (activeTab === 'bestsellers') {
-      matchesTab = product.is_featured === true || product.is_best_seller === true || (product.stock_quantity ?? 0) > 0;
+      matchesTab = product.is_featured === true || product.is_best_seller === true;
     } else if (activeTab === 'discounts') {
       matchesTab =
         product.discount_price !== undefined &&
